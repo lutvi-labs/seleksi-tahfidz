@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini akan didokumentasikan dalam file ini.
 
-## [1.0.0] - 2024-11-06 (Rilis Perdana)
+## [1.0.0] - 2026-11-06 (Rilis Perdana)
 ### Ditambahkan
 - **Modul Survei Peserta**: Integrasi form Streamlit native sebagai pengganti PsyToolkit.
 - **Scoring Engine Automatis**: Perhitungan skor DASS-21, Grit-8, CD-RISC-25, MV-10, dan RB-5.
