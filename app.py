@@ -1,3 +1,8 @@
+# ==============================================================================
+# COPYRIGHT (C) 2026 [LUTVI-LABS]. ALL RIGHTS RESERVED.
+# Dilarang menyalin, mengubah, atau mendistribusikan kode ini tanpa izin tertulis.
+# ==============================================================================
+
 import streamlit as st
 import pandas as pd
 import random

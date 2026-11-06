@@ -38,3 +38,11 @@ Sistem informasi berbasis web untuk menyeleksi calon santri tahfidz Al-Qur'an (t
 4. Install dependencies: `pip install -r requirements.txt`
 5. Buat folder `.streamlit` dan file `secrets.toml` berisi kredensial Supabase & Gemini.
 6. Jalankan aplikasi: `streamlit run app.py`
+
+## 🔒 Lisensi & Hak Cipta
+
+Project ini dilindungi di bawah lisensi **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)**.
+
+- ❌ **No Commercial:** Tidak boleh digunakan untuk tujuan komersial/dijual.
+- ❌ **No Derivatives:** Tidak boleh diubah, dimodifikasi, atau di-remix.
+- ℹ️ **Attribution:** Wajib mencantumkan nama pembuat asli.
