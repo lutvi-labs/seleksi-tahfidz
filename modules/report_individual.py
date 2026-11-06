@@ -2,41 +2,44 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from fpdf import FPDF
-import io
 import datetime
 
-# Helper Akses Nilai Aman (Case-Insensitive & Multi-Key)
-def get_val(row, *keys, default="-"):
+# ==========================================
+# HELPER DATA EXTRACTION (KOLOM SUPABASE EXPLICIT)
+# ==========================================
+
+def get_col(row, keys, default=0.0):
+    """
+    Mengambil nilai kolom dari row (dict/Series) dengan berbagai variasi nama kolom.
+    """
+    if isinstance(row, pd.Series):
+        row = row.to_dict()
     if not isinstance(row, dict):
-        try:
-            row = row.to_dict()
-        except:
-            return default
-            
+        return default
+
+    # Normalisasi semua key menjadi huruf kecil tanpa spasi
+    clean_row = {str(k).strip().lower(): v for k, v in row.items()}
+
     for k in keys:
-        if k in row and pd.notna(row[k]) and row[k] is not None:
-            return row[k]
-        # Cari pencocokan tanpa peduli kapital/kecil
-        for r_k in row.keys():
-            if str(r_k).lower() == str(k).lower() and pd.notna(row[r_k]) and row[r_k] is not None:
-                return row[r_k]
+        k_clean = str(k).strip().lower()
+        if k_clean in clean_row:
+            val = clean_row[k_clean]
+            if val is not None and pd.notna(val):
+                if isinstance(default, float):
+                    try: return float(val)
+                    except: pass
+                elif isinstance(default, int):
+                    try: return int(float(val))
+                    except: pass
+                else:
+                    return str(val)
+
     return default
 
-def _to_float(val, default=0.0):
-    try:
-        if pd.isna(val) or val is None:
-            return default
-        return float(val)
-    except:
-        return default
-
-def _to_str(val, default="-"):
-    if pd.isna(val) or val is None:
-        return default
-    return str(val)
-
-# Helper Pembersih Teks untuk PDF (Menghapus Emoji & Formatting Kasar)
 def clean_text_for_pdf(text):
+    """
+    Membersihkan emoji & karakter markdown agar aman dicetak oleh FPDF2.
+    """
     if not text:
         return ""
     text = str(text)
@@ -50,7 +53,10 @@ def clean_text_for_pdf(text):
     text = text.replace('**', '').replace('*', '')
     return text.encode('latin-1', 'replace').decode('latin-1')
 
-# Interpretasi DASS
+# ==========================================
+# INTERPRETASI & REKOMENDASI
+# ==========================================
+
 def get_interpretasi_dass(dep, anx, str_val):
     def dep_cat(v):
         if v <= 9: return "Normal"
@@ -79,15 +85,14 @@ def get_interpretasi_dass(dep, anx, str_val):
         'str_cat': str_cat(str_val)
     }
 
-# Rekomendasi Pengasuh
 def generate_rekomendasi(row):
-    keputusan = _to_str(get_val(row, 'Keputusan_Sistem', 'keputusan_sistem', default='LOLOS BERSYARAT')).upper()
+    keputusan = get_col(row, ['Keputusan', 'Keputusan_Sistem', 'keputusan', 'status'], default='TIDAK LOLOS').upper()
     reks = []
     
     if "TIDAK LOLOS" in keputusan:
         reks.append("• Belum direkomendasikan untuk program akselerasi tahfidz intensif saat ini.")
-        reks.append("• Disarankan mengikuti konseling psikologis awal untuk mengelola gejala kecemasan/stres.")
-        reks.append("• Perlu pendampingan belajar dengan ritme yang lebih bertahap.")
+        reks.append("• Disarankan mengikuti konseling psikologis awal untuk mengelola gejala kecemasan/stres/depresi.")
+        reks.append("• Perlu pendampingan belajar dengan ritme yang lebih bertahap dan perhatian khusus.")
     elif "BERSYARAT" in keputusan:
         reks.append("• Diterima dengan catatan pemantauan berkala pada 3 bulan pertama.")
         reks.append("• Perlu musyrif/pendamping khusus untuk penguatan ketahanan mental (resiliensi).")
@@ -99,27 +104,37 @@ def generate_rekomendasi(row):
         
     return "\n".join(reks)
 
-# Plot Radar Profile
+# ==========================================
+# VISUALISASI GRAFIK (PLOTLY)
+# ==========================================
+
 def plot_radar_profile(row):
     categories = ['Kesehatan Mental', 'Ketekunan (Grit)', 'Resiliensi', 'Daya Ingat', 'Integritas (Anti-RB)']
     
-    dep = _to_float(get_val(row, 'DASS_Depresi', 'dass_depresi', default=0))
-    anx = _to_float(get_val(row, 'DASS_Kecemasan', 'dass_kecemasan', default=0))
-    stres = _to_float(get_val(row, 'DASS_Stres', 'dass_stres', default=0))
+    dep = get_col(row, ['DASS_Depresi', 'dass_depresi', 'dass_d', 'depresi'], default=0.0)
+    anx = get_col(row, ['DASS_Kecemasan', 'dass_kecemasan', 'dass_a', 'kecemasan'], default=0.0)
+    stres = get_col(row, ['DASS_Stres', 'dass_stres', 'dass_s', 'stres'], default=0.0)
+    
     dass_tot = dep + anx + stres
     health_score = max(0.0, min(100.0, 100.0 - (dass_tot / 126.0 * 100.0)))
     
-    grit_score = (_to_float(get_val(row, 'GS8_Score', 'gs8_score', default=0)) / 5.0) * 100.0
-    cdrisc_score = _to_float(get_val(row, 'CDRISC_Score', 'cdrisc_score', default=0))
-    mem_score = (_to_float(get_val(row, 'Memori_Score', 'memori_score', default=0)) / 10.0) * 100.0
-    rb_score = max(0.0, 100.0 - (_to_float(get_val(row, 'RB5_Score', 'rb5_score', default=0)) * 20.0))
+    grit_val = get_col(row, ['Grit_Score', 'GS8_Score', 'gs8_score', 'grit'], default=0.0)
+    grit_score = (grit_val / 5.0) * 100.0
+    
+    cdrisc_score = get_col(row, ['CDRISC_Score', 'cdrisc_score', 'cdrisc'], default=0.0)
+    
+    mem_val = get_col(row, ['Memori_Score', 'memori_score', 'memori'], default=0.0)
+    mem_score = (mem_val / 10.0) * 100.0
+    
+    rb_val = get_col(row, ['RB_Score', 'RB5_Score', 'rb5_score', 'rb'], default=0.0)
+    rb_score = max(0.0, 100.0 - (rb_val * 20.0))
     
     values = [health_score, grit_score, cdrisc_score, mem_score, rb_score]
     thresholds = [75, 70, 65, 70, 80]
     
     fig = go.Figure()
     
-    # Threshold Min (Garis Putus-Putus Merah)
+    # Batas Minimum Standard (Garis Putus-Putus Merah)
     fig.add_trace(go.Scatterpolar(
         r=thresholds + [thresholds[0]],
         theta=categories + [categories[0]],
@@ -128,7 +143,7 @@ def plot_radar_profile(row):
         fill=None
     ))
     
-    # Profile Santri
+    # Profil Peserta
     fig.add_trace(go.Scatterpolar(
         r=values + [values[0]],
         theta=categories + [categories[0]],
@@ -146,13 +161,12 @@ def plot_radar_profile(row):
     )
     return fig
 
-# Plot DASS Bar
 def plot_dass_bar(row):
     categories = ['Depresi', 'Kecemasan', 'Stres']
     scores = [
-        _to_float(get_val(row, 'DASS_Depresi', 'dass_depresi', default=0)),
-        _to_float(get_val(row, 'DASS_Kecemasan', 'dass_kecemasan', default=0)),
-        _to_float(get_val(row, 'DASS_Stres', 'dass_stres', default=0))
+        get_col(row, ['DASS_Depresi', 'dass_depresi', 'dass_d', 'depresi'], default=0.0),
+        get_col(row, ['DASS_Kecemasan', 'dass_kecemasan', 'dass_a', 'kecemasan'], default=0.0),
+        get_col(row, ['DASS_Stres', 'dass_stres', 'dass_s', 'stres'], default=0.0)
     ]
     cutoffs = [9, 7, 14]
     
@@ -162,7 +176,7 @@ def plot_dass_bar(row):
         y=scores,
         name='Skor Peserta',
         marker_color=['#2e7d32' if scores[i] <= cutoffs[i] else '#c62828' for i in range(3)],
-        text=scores,
+        text=[f"{s:.1f}" for s in scores],
         textposition='auto'
     ))
     fig.update_layout(
@@ -174,7 +188,10 @@ def plot_dass_bar(row):
     )
     return fig
 
-# Generasi PDF Report
+# ==========================================
+# GENERATOR LAPORAN PDF (FPDF2)
+# ==========================================
+
 class IndividualPDFReport(FPDF):
     def header(self):
         self.set_font('Helvetica', 'B', 14)
@@ -201,20 +218,20 @@ def build_individual_pdf(row, ai_text=""):
     pdf.add_page()
     epw = 180 
 
-    # 1. Identitas
+    # 1. Identitas Santri
     pdf.set_font('Helvetica', 'B', 12)
     pdf.set_text_color(0, 0, 0)
     pdf.set_x(15)
     pdf.cell(epw, 7, clean_text_for_pdf("I. IDENTITAS ANANDA"), ln=True)
     pdf.ln(1)
     
-    nama = _to_str(get_val(row, 'Nama_Lengkap', 'nama', 'nama_lengkap'))
-    nisn = _to_str(get_val(row, 'NISN', 'nisn'))
-    usia = _to_str(get_val(row, 'Usia', 'usia'))
-    gender = _to_str(get_val(row, 'Jenis_Kelamin', 'jenis_kelamin'))
+    nama = get_col(row, ['Nama_Lengkap', 'nama_lengkap', 'username', 'nama'], default='-')
+    nisn = get_col(row, ['NISN', 'nisn'], default='-')
+    usia = get_col(row, ['Usia', 'usia'], default='-')
+    gender = get_col(row, ['Jenis_Kelamin', 'jenis_kelamin', 'gender'], default='-')
     
     data_id = [
-        [("Nama Lengkap", nama), ("NISN", nisn)],
+        [("Nama Lengkap", str(nama)), ("NISN", str(nisn))],
         [("Usia / Gender", f"{usia} Tahun / {gender}"), ("Tanggal Tes", datetime.datetime.now().strftime("%d-%m-%Y"))]
     ]
     
@@ -233,8 +250,8 @@ def build_individual_pdf(row, ai_text=""):
     pdf.ln(4)
 
     # 2. Status Keputusan
-    keputusan = _to_str(get_val(row, 'Keputusan_Sistem', 'keputusan_sistem', default='LOLOS BERSYARAT')).upper()
-    conf = _to_float(get_val(row, 'Confidence_Score', 'confidence_score', default=0))
+    keputusan = get_col(row, ['Keputusan', 'Keputusan_Sistem', 'keputusan', 'status'], default='TIDAK LOLOS').upper()
+    conf = get_col(row, ['Confidence', 'Confidence_Score', 'confidence'], default=0.0)
     
     pdf.set_x(15)
     if "TIDAK LOLOS" in keputusan:
@@ -267,10 +284,10 @@ def build_individual_pdf(row, ai_text=""):
     pdf.cell(75, 7, clean_text_for_pdf("Kategori & Interpretasi"), border=1, align='C', fill=True, ln=True)
 
     pdf.set_font('Helvetica', '', 9)
-    grit = _to_float(get_val(row, 'GS8_Score', 'gs8_score', default=0))
-    cdrisc = _to_float(get_val(row, 'CDRISC_Score', 'cdrisc_score', default=0))
-    mem = _to_float(get_val(row, 'Memori_Score', 'memori_score', default=0))
-    rb = _to_float(get_val(row, 'RB5_Score', 'rb5_score', default=0))
+    grit = get_col(row, ['Grit_Score', 'GS8_Score', 'grit'], default=0.0)
+    cdrisc = get_col(row, ['CDRISC_Score', 'cdrisc_score', 'cdrisc'], default=0.0)
+    mem = get_col(row, ['Memori_Score', 'memori_score', 'memori'], default=0.0)
+    rb = get_col(row, ['RB_Score', 'RB5_Score', 'rb'], default=0.0)
     
     table_data = [
         ("Ketekunan Belajar (GS-8)", f"{grit:.2f} / 5.0", "Tinggi" if grit>=3.5 else ("Sedang" if grit>=2.5 else "Rendah")),
@@ -293,9 +310,9 @@ def build_individual_pdf(row, ai_text=""):
     pdf.cell(epw, 7, clean_text_for_pdf("III. SKREENING KESEHATAN MENTAL (DS-21)"), ln=True)
     pdf.ln(1)
 
-    dep = _to_float(get_val(row, 'DASS_Depresi', 'dass_depresi', default=0))
-    anx = _to_float(get_val(row, 'DASS_Kecemasan', 'dass_kecemasan', default=0))
-    stres = _to_float(get_val(row, 'DASS_Stres', 'dass_stres', default=0))
+    dep = get_col(row, ['DASS_Depresi', 'dass_depresi', 'depresi'], default=0.0)
+    anx = get_col(row, ['DASS_Kecemasan', 'dass_kecemasan', 'kecemasan'], default=0.0)
+    stres = get_col(row, ['DASS_Stres', 'dass_stres', 'stres'], default=0.0)
     dass_interp = get_interpretasi_dass(dep, anx, stres)
 
     pdf.set_font('Helvetica', '', 9)
@@ -304,7 +321,7 @@ def build_individual_pdf(row, ai_text=""):
     pdf.multi_cell(epw, 6, clean_text_for_pdf(dass_txt), border=1, align='C')
     pdf.ln(4)
 
-    # 5. Rekomendasi Pengasuh
+    # 5. Catatan Rekomendasi
     pdf.set_x(15)
     pdf.set_font('Helvetica', 'B', 12)
     pdf.cell(epw, 7, clean_text_for_pdf("IV. CATATAN & REKOMENDASI PENGASUH"), ln=True)
@@ -320,8 +337,8 @@ def build_individual_pdf(row, ai_text=""):
     pdf.ln(3)
 
     # 6. Motivasi Peserta
-    motivasi = _to_str(get_val(row, 'Motivasi_Peserta', 'motivasi_peserta', 'motivasi'))
-    if motivasi != '-':
+    motivasi = get_col(row, ['Motivasi_Peserta', 'motivasi_peserta', 'motivasi'], default='-')
+    if str(motivasi).strip() != '-':
         pdf.set_x(15)
         pdf.set_font('Helvetica', 'B', 10)
         pdf.cell(epw, 6, clean_text_for_pdf("Motivasi Ananda:"), ln=True)
@@ -350,44 +367,39 @@ def build_individual_pdf(row, ai_text=""):
     return bytes(pdf.output())
 
 
-# UI Utama Laporan Individual
+# ==========================================
+# UI MAIN FUNCTION
+# ==========================================
+
 def show_individual_report(df_responses):
     st.title("📋 Laporan Individual Santri")
     st.markdown("Analisis mendalam profil psikologi, ketahanan mental, serta laporan siap cetak PDF.")
 
-    # Cek Jika DataFrame Kosong
     if df_responses is None or (isinstance(df_responses, pd.DataFrame) and df_responses.empty):
         st.warning("⚠️ Belum ada data respons peserta yang tersimpan di database Supabase.")
-        st.info("💡 **Petunjuk Pengujian Cepat:**\nAnda dapat masuk ke menu **⚙️ Simulasi & Upload** di menu sidebar kiri, lalu klik **🎲 Generate 5 Data Dummy Santri** untuk membuat sampel data uji coba.")
         return
 
-    # Cari Kolom Nama
+    # Cari Kolom Nama / User Identifier secara cerdas
     name_col = None
-    possible_cols = ['Nama_Lengkap', 'nama', 'nama_lengkap', 'Nama', 'user_id']
-    for c in possible_cols:
+    for c in ['username', 'Nama_Lengkap', 'nama_lengkap', 'nama', 'Nama']:
         if c in df_responses.columns:
             name_col = c
             break
 
     if not name_col:
-        st.error("⚠️ Kolom nama peserta tidak ditemukan pada tabel respons database.")
-        st.info("💡 Silakan isi data sampel melalui menu **⚙️ Simulasi & Upload**.")
+        st.error("⚠️ Kolom identifier peserta (username/nama) tidak ditemukan di database.")
         return
 
-    # Ambil Daftar Nama Peserta yang Valid
     peserta_names = df_responses[name_col].dropna().astype(str).unique().tolist()
-
     if not peserta_names:
         st.warning("⚠️ Belum ada santri yang menyelesaikan survei.")
-        st.info("👉 Minta santri mengisi survei melalui link `?page=survey`, atau buat data sampel di menu **⚙️ Simulasi & Upload**.")
         return
 
     # Dropdown Pilih Santri
     col_sel, _ = st.columns([2, 1])
     with col_sel:
-        selected_nama = st.selectbox("🎯 Pilih Nama Ananda Santri:", peserta_names)
+        selected_nama = st.selectbox("🎯 Pilih Nama / Username Ananda Santri:", peserta_names)
 
-    # Filter Data Santri Terpilih
     selected_df = df_responses[df_responses[name_col].astype(str) == str(selected_nama)]
     if selected_df.empty:
         st.warning("Data untuk santri ini tidak ditemukan.")
@@ -401,27 +413,28 @@ def show_individual_report(df_responses):
     c1, c2, c3 = st.columns([1.2, 1, 1])
     with c1:
         st.subheader("👤 Identitas Santri")
-        st.write(f"**Nama:** {get_val(row_data, 'Nama_Lengkap', 'nama', 'nama_lengkap')}")
-        st.write(f"**NISN:** {get_val(row_data, 'NISN', 'nisn')}")
-        st.write(f"**Usia:** {get_val(row_data, 'Usia', 'usia')} Tahun")
-        st.write(f"**Gender:** {get_val(row_data, 'Jenis_Kelamin', 'jenis_kelamin')}")
+        st.write(f"**Username / Nama:** {get_col(row_data, ['username', 'Nama_Lengkap', 'nama_lengkap', 'nama'], default='-')}")
+        st.write(f"**NISN:** {get_col(row_data, ['NISN', 'nisn'], default='-')}")
+        st.write(f"**Usia:** {get_col(row_data, ['Usia', 'usia'], default='-')} Tahun")
+        st.write(f"**Gender:** {get_col(row_data, ['Jenis_Kelamin', 'jenis_kelamin', 'gender'], default='-')}")
 
     with c2:
         st.subheader("📊 Hasil Asesmen")
-        kep = _to_str(get_val(row_data, 'Keputusan_Sistem', 'keputusan_sistem', default='LOLOS BERSYARAT'))
-        if "TIDAK LOLOS" in kep.upper():
+        kep = get_col(row_data, ['Keputusan', 'Keputusan_Sistem', 'keputusan', 'status'], default='TIDAK LOLOS')
+        
+        if "TIDAK LOLOS" in str(kep).upper():
             st.error(f"**{kep}**")
-        elif "BERSYARAT" in kep.upper():
+        elif "BERSYARAT" in str(kep).upper():
             st.warning(f"**{kep}**")
         else:
             st.success(f"**{kep}**")
         
-        conf = _to_float(get_val(row_data, 'Confidence_Score', 'confidence_score', default=0))
+        conf = get_col(row_data, ['Confidence', 'Confidence_Score', 'confidence'], default=0.0)
         st.metric("Indeks Kesesuaian Program", f"{conf:.1f}%")
 
     with c3:
         st.subheader("💬 Motivasi Ananda")
-        mot = get_val(row_data, 'Motivasi_Peserta', 'motivasi_peserta', 'motivasi')
+        mot = get_col(row_data, ['Motivasi_Peserta', 'motivasi_peserta', 'motivasi'], default='-')
         st.info(f'"{mot}"')
 
     st.markdown("---")
@@ -443,7 +456,7 @@ def show_individual_report(df_responses):
     # Fitur AI Individual
     st.subheader("🤖 Analisis AI Individual (Gemini Engine)")
     
-    nama_clean = str(get_val(row_data, 'Nama_Lengkap', 'nama', default='santri')).replace(" ", "_")
+    nama_clean = str(get_col(row_data, ['username', 'Nama_Lengkap', 'nama'], default='santri')).replace(" ", "_")
     ai_session_key = f"ai_report_{nama_clean}"
     
     if ai_session_key not in st.session_state:
@@ -472,7 +485,7 @@ def show_individual_report(df_responses):
     
     # 1. Download TXT
     with c_down1:
-        txt_content = f"LAPORAN HASIL SELEKSI INDIVIDUAL\nNama: {get_val(row_data, 'Nama_Lengkap', 'nama')}\nHasil: {get_val(row_data, 'Keputusan_Sistem', 'keputusan_sistem')}\nConfidence: {get_val(row_data, 'Confidence_Score', 'confidence_score')}%\n\nANALISIS AI:\n{st.session_state[ai_session_key]}"
+        txt_content = f"LAPORAN HASIL SELEKSI INDIVIDUAL\nNama/Username: {get_col(row_data, ['username', 'Nama_Lengkap', 'nama'])}\nHasil: {get_col(row_data, ['Keputusan', 'Keputusan_Sistem'])}\nConfidence: {get_col(row_data, ['Confidence', 'Confidence_Score'])}%\n\nANALISIS AI:\n{st.session_state[ai_session_key]}"
         st.download_button(
             label="📄 Download Laporan (Teks / TXT)",
             data=txt_content,
