@@ -64,7 +64,7 @@ def show_login_peserta():
     st.image("https://cdn-icons-png.flaticon.com/512/3588/3588102.png", width=100)
     st.title("Ahlan wa Sahlan! 🕌")
     st.subheader("Portal Seleksi Calon Santri Tahfidz")
-    st.write("**Assalamu'alaikum adik-adik yang shalih dan shalihah!** 👋")
+    st.write("**Assalamu'alaikum ananda yang shalih dan shalihah!** 👋")
     st.write("Yuk, silakan **Login** atau **Buat Akun Baru** dulu ya sebelum mulai.")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -93,7 +93,7 @@ def show_login_peserta():
 
     with tab2:
         with st.form("form_register_peserta"):
-            new_nama = st.text_input("Nama Lengkap Adik*")
+            new_nama = st.text_input("Nama Lengkap Ananda*")
             new_username = st.text_input("Username (Buat nama unik tanpa spasi, contoh: ahmad123)*")
             new_password = st.text_input("Password (Buat password yang mudah diingat)*", type="password")
             new_email = st.text_input("Email Orang Tua / Pembimbing (Boleh dikosongkan)")
@@ -105,9 +105,9 @@ def show_login_peserta():
                 else:
                     reg_result = register_user(new_username, new_password, new_nama, new_email)
                     if reg_result:
-                        st.success("Hore! Akun berhasil dibuat. Silakan klik Tab 'Login' di sebelah kiri untuk masuk.")
+                        st.success("Alhamdulillah! Akun berhasil dibuat. Silakan klik Tab 'Login' di sebelah kiri untuk masuk.")
                     else:
-                        st.error("Waduh, username ini sudah dipakai teman yang lain. Coba ganti yang lain ya.")
+                        st.error("Afwan, username ini sudah dipakai teman yang lain. Coba ganti yang lain ya.")
 
 # --- FUNGSI HALAMAN SURVEI (RAMAH ANAK & ISLAMI) ---
 def show_survey():
