@@ -383,51 +383,84 @@ def show_survey():
             st.session_state.clear()
             st.rerun()
 
-# --- FUNGSI HALAMAN ADMIN DASHBOARD ---
+# --- FUNGSI HALAMAN ADMIN DASHBOARD (SIDEBAR NAVIGATION) ---
 def show_dashboard():
+    # ============ SIDEBAR KIRI ============
     with st.sidebar:
-        st.title("Panel Kontrol Admin")
-        if st.button("🚪 Logout Admin"):
+        st.markdown("## 🕌 Panel Admin")
+        st.caption("Sistem Seleksi Tahfidz 30 Juz")
+        st.markdown("---")
+
+        menu = st.radio(
+            "Navigasi Menu",
+            options=[
+                "🎛️ Dashboard",
+                "📋 Laporan Individual",
+                "📈 Analisis JASP",
+                "🤖 AI Report Angkatan",
+                "👥 Data User",
+                "📂 Database",
+                "⚙️ Simulasi & Upload"
+            ],
+            label_visibility="collapsed"
+        )
+
+        st.markdown("---")
+        st.markdown("### 🔗 Link Cepat")
+        st.markdown("**Portal Peserta:**")
+        # Link relatif agar otomatis cocok di localhost maupun Streamlit Cloud
+        st.code("?page=survey", language=None)
+        st.caption("Tambahkan `?page=survey` di akhir URL aplikasi Anda.")
+
+        st.markdown("---")
+        if st.button("🚪 Logout Admin", use_container_width=True, type="primary"):
             st.session_state.clear()
             st.rerun()
 
-    st.markdown("<h1 style='text-align: center;'><span style='font-size:40px'>📊</span> Dashboard Seleksi Santri Tahfidz</h1>", unsafe_allow_html=True)
-    
+    # ============ KONTEN UTAMA ============
+    st.markdown(
+        "<h1 style='margin-bottom:0;'>📊 Sistem Seleksi Santri Tahfidz</h1>"
+        "<p style='color:#64748b; margin-top:4px;'>Dashboard Admin • Target 30 Juz &lt; 3 Tahun</p>",
+        unsafe_allow_html=True
+    )
+    st.markdown("---")
+
     responses = get_all_responses()
     users = get_all_users()
 
+    # Jika belum ada data survei
     if not responses:
         st.warning("⚠️ Belum ada peserta yang mengisi survei.")
         if users:
-            st.info(f"Total user terdaftar di sistem: {len(users)}")
+            st.info(f"Total user terdaftar di sistem: **{len(users)}**")
             df_users = pd.DataFrame(users)
-            st.dataframe(df_users[['id', 'username', 'nama_lengkap', 'email', 'role', 'sudah_mengerjakan', 'created_at']], use_container_width=True)
-        
+            st.dataframe(
+                df_users[['id', 'username', 'nama_lengkap', 'email', 'role', 'sudah_mengerjakan', 'created_at']],
+                use_container_width=True
+            )
+
         st.markdown("---")
         st.subheader("⚙️ Simulasi Data Cepat")
-        if st.button("🚀 Generate 5 Data Simulasi (Klik Disini Untuk Buat Data Uji Coba)", type="primary"):
+        st.write("Gunakan tombol ini untuk mengisi dashboard dengan data uji coba.")
+        if st.button("🚀 Generate 5 Data Simulasi", type="primary"):
             generate_dummy_data()
         return
 
+    # Proses scoring
     processed_data = []
     for r in responses:
         raw_dict = r['data']
-        scored = score_all(raw_dict) # aman menerima dict
+        scored = score_all(raw_dict)
         scored['id_response'] = r['id']
         scored['username'] = r['username']
         scored['waktu_submit'] = r['submitted_at']
         processed_data.append(scored)
 
     df = pd.DataFrame(processed_data)
-    # Hapus kolom duplikat jika ada (PENTING)
     df = df.loc[:, ~df.columns.duplicated()]
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "🎛️ Dashboard", "📋 Laporan Individual", "📈 Analisis JASP", 
-        "🤖 AI Report", "👥 Data User", "📂 Database", "⚙️ Simulasi & Upload"
-    ])
-
-    with tab1:
+    # ============ ROUTING MENU ============
+    if menu == "🎛️ Dashboard":
         st.subheader("Ringkasan Hasil Seleksi")
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Peserta Tes", len(df))
@@ -438,70 +471,110 @@ def show_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             import plotly.express as px
-            fig_pie = px.pie(df, names='Keputusan', title='Proporsi Hasil Seleksi Santri', color='Keputusan',
-                             color_discrete_map={'LOLOS': '#28a745', 'LOLOS BERSYARAT': '#ffc107', 'TIDAK LOLOS': '#dc3545'})
+            fig_pie = px.pie(
+                df, names='Keputusan', title='Proporsi Hasil Seleksi Santri', color='Keputusan',
+                color_discrete_map={
+                    'LOLOS': '#28a745',
+                    'LOLOS BERSYARAT': '#ffc107',
+                    'TIDAK LOLOS': '#dc3545'
+                }
+            )
             st.plotly_chart(fig_pie, use_container_width=True)
         with c2:
-            fig_scatter = px.scatter(df, x='Grit_Score', y='CDRISC_Score', color='Keputusan',
-                                     hover_data=['nama'], title='Peta Ketangguhan Santri (Semangat vs Resiliensi)')
+            fig_scatter = px.scatter(
+                df, x='Grit_Score', y='CDRISC_Score', color='Keputusan',
+                hover_data=['nama'], title='Peta Ketangguhan Santri (Semangat vs Resiliensi)'
+            )
             st.plotly_chart(fig_scatter, use_container_width=True)
 
-        st.subheader("Ranking Peserta Berdasarkan Skor Kepercayaan (Confidence Score)")
+        st.subheader("Ranking Peserta (Confidence Score)")
         top_df = df.sort_values(by='Confidence', ascending=False)
-        st.dataframe(top_df[['nama', 'Confidence', 'Keputusan', 'DASS_Kategori_Depresi', 'Grit_Kategori', 'CDRISC_Kategori']], use_container_width=True)
+        st.dataframe(
+            top_df[['nama', 'Confidence', 'Keputusan', 'DASS_Kategori_Depresi', 'Grit_Kategori', 'CDRISC_Kategori']],
+            use_container_width=True
+        )
 
-    with tab2:
+    elif menu == "📋 Laporan Individual":
         show_individual_report(df)
 
-    with tab3:
+    elif menu == "📈 Analisis JASP":
         st.subheader("Analisis Statistik Standar JASP")
         desc_df = get_descriptives(df)
         st.dataframe(desc_df, use_container_width=True)
         st.markdown("#### Matriks Korelasi Pearson (Pingouin)")
         corr_df = get_correlations(df)
-        if corr_df is not None: st.dataframe(corr_df, use_container_width=True)
+        if corr_df is not None:
+            st.dataframe(corr_df, use_container_width=True)
+        else:
+            st.info("Data belum cukup untuk menghitung korelasi.")
 
-    with tab4:
+    elif menu == "🤖 AI Report Angkatan":
         st.subheader("Laporan Psikologis AI (Google Gemini)")
+        st.write("AI akan menganalisis tren kesehatan mental dan ketahanan santri secara keseluruhan.")
         if st.button("Mulai Analisis AI Angkatan", type="primary"):
             with st.spinner("AI sedang membaca dan menganalisis data santri..."):
                 report = analyze_cohort(df)
-                st.markdown(f"<div class='card'>{report}</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div class='card' style='background:white;padding:24px;border-radius:12px;"
+                    f"border:1px solid #e2e8f0;'>{report}</div>",
+                    unsafe_allow_html=True
+                )
 
-    with tab5:
+    elif menu == "👥 Data User":
         st.subheader("Daftar Akun Terdaftar")
         if users:
             df_users = pd.DataFrame(users)
-            st.dataframe(df_users[['id', 'username', 'nama_lengkap', 'email', 'role', 'sudah_mengerjakan', 'created_at']], use_container_width=True)
+            st.dataframe(
+                df_users[['id', 'username', 'nama_lengkap', 'email', 'role', 'sudah_mengerjakan', 'created_at']],
+                use_container_width=True
+            )
+        else:
+            st.info("Belum ada user terdaftar.")
 
-    with tab6:
+    elif menu == "📂 Database":
         st.subheader("Unduh Raw Data Database")
-        st.dataframe(df)
+        st.dataframe(df, use_container_width=True)
         csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Download Database CSV", data=csv, file_name="database_seleksi_tahfidz.csv", mime="text/csv")
+        st.download_button(
+            "📥 Download Database CSV",
+            data=csv,
+            file_name="database_seleksi_tahfidz.csv",
+            mime="text/csv"
+        )
 
-    with tab7:
+    elif menu == "⚙️ Simulasi & Upload":
         st.header("⚙️ Simulasi & Upload Data Offline")
         colA, colB = st.columns(2)
+
         with colA:
             st.subheader("1. Generate Data Uji Coba")
+            st.write("Klik tombol ini untuk membuat 5 peserta simulasi secara instan.")
             if st.button("🚀 Generate 5 Data Simulasi", type="primary"):
                 generate_dummy_data()
 
         with colB:
             st.subheader("2. Upload Data CSV Manual")
             template_cols = ['nama', 'jenis_kelamin', 'usia', 'asal_sekolah']
-            for i in range(1,8): template_cols.extend([f'dass_d{i}', f'dass_a{i}', f'dass_s{i}'])
-            for i in range(1,9): template_cols.append(f'gs{i}')
-            for i in range(1,26): template_cols.append(f'cdrisc{i}')
-            template_cols.extend(['memori_jawaban'])
-            for i in range(1,6): template_cols.append(f'rb{i}')
-            
+            for i in range(1, 8):
+                template_cols.extend([f'dass_d{i}', f'dass_a{i}', f'dass_s{i}'])
+            for i in range(1, 9):
+                template_cols.append(f'gs{i}')
+            for i in range(1, 26):
+                template_cols.append(f'cdrisc{i}')
+            template_cols.append('memori_jawaban')
+            for i in range(1, 6):
+                template_cols.append(f'rb{i}')
+
             df_template = pd.DataFrame(columns=template_cols)
             csv_template = df_template.to_csv(index=False).encode('utf-8')
-            
-            st.download_button("📥 Download Format Template CSV", data=csv_template, file_name="template_upload.csv", mime="text/csv")
-            
+
+            st.download_button(
+                "📥 Download Format Template CSV",
+                data=csv_template,
+                file_name="template_upload.csv",
+                mime="text/csv"
+            )
+
             uploaded_file = st.file_uploader("Upload CSV Hasil Tes Offline", type=['csv'])
             if uploaded_file is not None:
                 if st.button("Proses Upload File CSV"):
@@ -512,19 +585,24 @@ def show_dashboard():
                             for index, row in df_upload.iterrows():
                                 rand_suffix = ''.join(random.choices(string.digits, k=4))
                                 uname = f"csv_{rand_suffix}"
-                                user_data = register_user(uname, "123456", row.get('nama', f'User CSV {rand_suffix}'))
+                                user_data = register_user(
+                                    uname, "123456", row.get('nama', f'User CSV {rand_suffix}')
+                                )
                                 user_data = sanitize_user(user_data)
                                 if user_data:
                                     uid = user_data['id']
                                     payload = row.to_dict()
-                                    payload = {k: (0 if pd.isna(v) and isinstance(v, (int, float)) else ("" if pd.isna(v) else v)) for k, v in payload.items()}
+                                    payload = {
+                                        k: (0 if pd.isna(v) and isinstance(v, (int, float))
+                                            else ("" if pd.isna(v) else v))
+                                        for k, v in payload.items()
+                                    }
                                     save_survey_response(uid, uname, payload)
                                     sukses_count += 1
                             st.success(f"Berhasil mengunggah {sukses_count} data!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"Gagal memproses file CSV: {e}")
-
 def generate_dummy_data():
     with st.spinner("Sedang membuat 5 sampel peserta simulasi..."):
         for i in range(5):

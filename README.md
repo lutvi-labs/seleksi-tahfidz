@@ -45,4 +45,4 @@ Project ini dilindungi di bawah lisensi **Creative Commons Attribution-NonCommer
 
 - ❌ **No Commercial:** Tidak boleh digunakan untuk tujuan komersial/dijual.
 - ❌ **No Derivatives:** Tidak boleh diubah, dimodifikasi, atau di-remix.
-- ℹ️ **Attribution:** Wajib mencantumkan nama pembuat asli.
+- ℹ️ **Attribution:** Wajib mencantumkan nama pembuat asli Lutvi-labs.
