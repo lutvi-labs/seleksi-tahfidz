@@ -105,7 +105,7 @@ def show_login_peserta():
                 else:
                     reg_result = register_user(new_username, new_password, new_nama, new_email)
                     if reg_result:
-                        st.success("Alhamdulillah! Akun berhasil dibuat. Silakan klik Tab 'Login' di sebelah kiri untuk masuk.")
+                        st.success("Alhamdulillah! Akun berhasil dibuat. Silakan klik Tab 'Login' di sebelah kiri atas untuk masuk.")
                     else:
                         st.error("Afwan, username ini sudah dipakai teman yang lain. Coba ganti yang lain ya.")
 
@@ -147,7 +147,7 @@ def show_survey():
 
     # ------------------ STEP 1: DATA DIRI ------------------
     if step == 1:
-        st.subheader("Langkah 1 dari 7: Data Diri")
+        st.subheader("Langkah 1 dari 7: Isi Data Diri dulu ya")
         with st.form("step1"):
             jk = st.selectbox("Jenis Kelamin", ["Laki-laki", "Perempuan"])
             usia = st.number_input("Umur Berapa Tahun Sekarang?", min_value=8, max_value=25, value=11)
@@ -163,7 +163,7 @@ def show_survey():
 
     # ------------------ STEP 2: DS-21 ------------------
     elif step == 2:
-        st.subheader("Langkah 2 dari 7: Perasaan Sehari-hari (DS-21)")
+        st.subheader("Langkah 2 dari 7: Perasaanmu Sehari-hari (DS-21)")
         st.info("Pilihlah seberapa SERING kamu merasakan hal-hal berikut dalam 1 minggu terakhir:")
         
         options_dass = {"Tidak Pernah": 0, "Kadang-kadang": 1, "Sering": 2, "Hampir Setiap Hari": 3}
@@ -203,7 +203,7 @@ def show_survey():
 
     # ------------------ STEP 3: GS-8 ------------------
     elif step == 3:
-        st.subheader("Langkah 3 dari 7: Semangat & Ketekunan (GS-8)")
+        st.subheader("Langkah 3 dari 7:  Tentang Dirimu(GS-8)")
         st.info("Pilihlah seberapa SETUJU kamu dengan kalimat-kalimat di bawah ini:")
         
         options_gs = {"Sangat Tidak Setuju": 1, "Kurang Setuju": 2, "Netral / Kadang-kadang": 3, "Setuju": 4, "Sangat Setuju": 5}
@@ -230,7 +230,7 @@ def show_survey():
 
     # ------------------ STEP 4: CR-25 ------------------
     elif step == 4:
-        st.subheader("Langkah 4 dari 7: Ketahanan Mental (CR-25)")
+        st.subheader("Langkah 4 dari 7: Tentang Dirimu lanjutan (CR-25)")
         st.info("Pilihlah seberapa SETUJU kamu dengan kalimat-kalimat ini berdasarkan sifat aslimu:")
         
         options_cr = {
@@ -276,7 +276,7 @@ def show_survey():
 
     # ------------------ STEP 5: TES MEMORI MV-10 (COUNTDOWN TIMER 15 DETIK) ------------------
     elif step == 5:
-        st.subheader("Langkah 5 dari 7: Tes Daya Ingat (MV-10)")
+        st.subheader("Langkah 5 dari 7: Saatnya Bermain (MV-10)")
 
         if 'memori_started' not in st.session_state:
             st.session_state.memori_started = False
@@ -325,7 +325,7 @@ def show_survey():
 
     # ------------------ STEP 6: RB-5 ------------------
     elif step == 6:
-        st.subheader("Langkah 6 dari 7: Kuesioner Kejujuran (RB-5)")
+        st.subheader("Langkah 6 dari 7: Pertanyaan Kejujuran (RB-5)")
         st.info("Jawablah dengan jujur ya, Allah Maha Mengetahui dan Melihat segala yang kita lakukan:")
         
         options_rb = {"Tidak Pernah": 0, "Pernah": 1}
@@ -353,7 +353,7 @@ def show_survey():
         with st.form("step7"):
             motivasi = st.text_area("Terakhir, ceritakan secara singkat ya, kenapa sih kamu ingin banget menjadi seorang Hafidz/Hafidzah 30 Juz Al-Qur'an?", height=150)
             
-            st.info("Bismillah, periksa lagi hatimu dan niatkan karena Allah Ta'ala sebelum klik tombol di bawah ini ya.")
+            st.info("Bismillah, periksa lagi jawaban kamu dan niatkan karena Allah Ta'ala sebelum klik tombol di bawah ini ya.")
             if st.form_submit_button("Selesai & Kirim Semua Jawaban 🚀", type="primary"):
                 st.session_state.survey_data['motivasi'] = motivasi
                 sukses = save_survey_response(user['id'], user['username'], st.session_state.survey_data)

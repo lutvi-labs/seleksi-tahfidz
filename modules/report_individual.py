@@ -346,7 +346,7 @@ def build_individual_pdf(row, ai_text=""):
         pdf.set_x(15)
         pdf.set_font('Helvetica', 'B', 12)
         pdf.set_text_color(27, 94, 32)
-        pdf.cell(epw, 7, clean_text_for_pdf("V. ANALISIS EKSPERTIS AI (GEMINI ENGINE)"), ln=True)
+        pdf.cell(epw, 7, clean_text_for_pdf("V. ANALISIS EKSPERTIS  ( AI Generative Engine )"), ln=True)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(1)
 
@@ -441,14 +441,14 @@ def show_individual_report(df_responses):
         st.plotly_chart(fig_radar, use_container_width=True)
 
     with col_chart2:
-        st.markdown("##### 🩺 Skreeking Kesehatan Mental (DS-21)")
+        st.markdown("##### 🩺 Skreening Kesehatan Mental (DS-21)")
         fig_dass = plot_dass_bar(row_data)
         st.plotly_chart(fig_dass, use_container_width=True)
 
     st.markdown("---")
 
     # Fitur AI Individual
-    st.subheader("🤖 Analisis AI Individual (Gemini Engine)")
+    st.subheader("🤖 Analisis AI Individual")
     
     nama_clean = str(get_col(row_data, ['nama', 'nama_lengkap', 'username'], default='santri')).replace(" ", "_")
     ai_session_key = f"ai_report_{nama_clean}"

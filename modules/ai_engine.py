@@ -107,7 +107,7 @@ def analyze_individual(row):
     ### 👤 Ringkasan Profil Psikologis {nama}
     ### 💪 Potensi & Kekuatan Utama
     ### ⚠️ Area Perhatian & Potensi Hambatan Mental
-    ### 📖 Rekomendasi Metode Menghafal & Pendampingan Ustaz
+    ### 📖 Rekomendasi Metode Menghafal & Pendampingan Ustadz/Ustadzah
     ### 🌟 Pesan Motivasi Islami Khusus untuk Santri
     """
 
@@ -144,7 +144,7 @@ def _fallback_individual_report(nama, keputusan, confidence, grit, cdrisc, mem, 
     * Skor sub-skala DASS-21: Depresi **{dep:.0f}**, Kecemasan **{anx:.0f}**, Stres **{str_s:.0f}**.
     * Santri memerlukan suasana belajar yang sejuk, nyaman, dan terhindar dari tekanan tinggi.
 
-    ### 📖 Rekomendasi Pendampingan Ustaz
+    ### 📖 Rekomendasi Pendampingan Ustadz/ Ustadzah
     * Diberikan kurikulum hafalan bertahap serta pendampingan motivasi berkala.
 
     *(Catatan: Masukkan `GEMINI_API_KEY` di secrets.toml untuk narasi AI interaktif)*
