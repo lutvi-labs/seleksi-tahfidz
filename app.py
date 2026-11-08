@@ -15,11 +15,13 @@ from modules.jasp_engine import get_descriptives, get_correlations
 from modules.ai_engine import analyze_cohort
 from modules.report_individual import show_individual_report
 from modules.memory_tests import (
+    AYAH_MEMORY_EXCERPT,
     ARABIC_MEMORY_WORDS,
     AYAH_ORDER_CHOICES,
+    COLOR_HEX,
     COLOR_OPTIONS,
+    COLOR_SHAPES,
     SOUND_OPTIONS,
-    SURAH_AL_IKHLAS,
     create_sound_sequence_audio,
 )
 from modules.db_supabase import (
@@ -86,7 +88,7 @@ def scroll_survey_to_top():
         unsafe_allow_javascript=True
     )
 
-def show_timed_memory_stimulus(key, content, duration_seconds, start_label):
+def show_timed_memory_stimulus(key, content, duration_seconds, start_label, direction="rtl"):
     started_key = f"{key}_started"
     finished_key = f"{key}_finished"
     if st.session_state.get(finished_key, False):
@@ -105,7 +107,7 @@ def show_timed_memory_stimulus(key, content, duration_seconds, start_label):
             f"""
             <div style="text-align:center;background:#e9ecef;padding:24px;
                         border-radius:12px;color:#0f5132;">
-                <div style="font-size:28px;direction:rtl;line-height:2">{content}</div>
+                <div style="font-size:28px;direction:{direction};line-height:2">{content}</div>
                 <div style="color:#dc3545;font-size:18px">
                     ⏱️ Sisa waktu: {remaining} detik
                 </div>
@@ -438,7 +440,7 @@ def show_survey():
 
         elif variant_step == 1:
             st.subheader("Variasi 1 dari 4: Ingatan Kosakata Arab")
-            st.info("Perhatikan delapan kosakata Arab selama 12 detik. Tidak perlu mengetahui artinya; cukup ingat bentuk katanya.")
+            st.info("Perhatikan delapan kosakata Arab selama 12 detik. Setelah disembunyikan, tuliskan kata yang kamu ingat beserta artinya, satu pasangan per baris.")
             arabic_words = "　".join(ARABIC_MEMORY_WORDS)
             if not show_timed_memory_stimulus(
                 "memory_arabic",
@@ -447,10 +449,10 @@ def show_survey():
                 "⏱️ Mulai melihat kosakata Arab"
             ):
                 return
-            st.success("Kata-kata sudah disembunyikan. Tuliskan kosakata yang masih kamu ingat.")
+            st.success("Kata-kata sudah disembunyikan. Tuliskan kata yang kamu ingat beserta artinya.")
             with st.form("memory_arabic_form"):
                 answer = st.text_area(
-                    "Tuliskan dalam huruf Arab jika bisa. Jika tidak, tuliskan bunyi katanya dengan huruf Latin.",
+                    "Format: kata Arab/transliterasi = arti; tulis satu pasangan per baris.",
                     height=100,
                     key="memory_arabic_answer"
                 )
@@ -462,15 +464,15 @@ def show_survey():
 
         elif variant_step == 2:
             st.subheader("Variasi 2 dari 4: Ingatan Potongan Ayat")
-            st.info("Perhatikan Surah Al-Ikhlas ayat 1–4 selama 15 detik. Setelah disembunyikan, pilih urutan kata pada ayat pertama.")
+            st.info("Perhatikan nukilan Surah Al-Baqarah ayat 153 selama 15 detik. Setelah disembunyikan, pilih urutan kata yang sesuai dengan bagian ayat yang ditanyakan.")
             if not show_timed_memory_stimulus(
                 "memory_ayah",
-                SURAH_AL_IKHLAS.replace("\n", "<br>"),
+                AYAH_MEMORY_EXCERPT,
                 15,
                 "📖 Mulai melihat potongan ayat"
             ):
                 return
-            st.success("Ayat sudah disembunyikan. Pilih urutan kata ayat pertama yang kamu ingat.")
+            st.success("Ayat sudah disembunyikan. Pilih susunan kata yang sesuai dengan nukilan ayat.")
             with st.form("memory_ayah_form"):
                 answer = st.radio(
                     "Urutan yang benar:",
@@ -485,27 +487,42 @@ def show_survey():
 
         elif variant_step == 3:
             st.subheader("Variasi 3 dari 4: Ingatan Urutan Warna")
-            st.info("Ingat urutan lima warna yang muncul selama 10 detik. Setelah itu, susun kembali urutannya.")
+            st.info("Ingat warna pada lima benda dengan bentuk berbeda selama 10 detik. Setelah disembunyikan, tuliskan urutan warnanya dari kiri ke kanan, pisahkan dengan koma.")
             if "memory_color_target" not in st.session_state:
                 st.session_state.memory_color_target = random.sample(COLOR_OPTIONS, 5)
-            color_stimulus = "　".join(st.session_state.memory_color_target)
+            object_names = ["Bola", "Buku", "Penggaris", "Layang-layang", "Bintang"]
+            color_stimulus = (
+                '<div style="display:flex;direction:ltr;justify-content:center;'
+                'align-items:flex-end;gap:24px;flex-wrap:wrap">'
+                + "".join(
+                    (
+                        '<div style="display:flex;flex-direction:column;'
+                        'align-items:center;min-width:72px">'
+                        f'<span style="font-size:52px;line-height:1;color:{COLOR_HEX[color]}">'
+                        f'{shape}</span><span style="font-size:16px">{name}</span></div>'
+                    )
+                    for color, shape, name in zip(
+                        st.session_state.memory_color_target,
+                        COLOR_SHAPES,
+                        object_names
+                    )
+                )
+                + "</div>"
+            )
             if not show_timed_memory_stimulus(
                 "memory_color",
                 color_stimulus,
                 10,
-                "🎨 Mulai melihat urutan warna"
+                "Mulai melihat urutan benda",
+                direction="ltr"
             ):
                 return
-            st.success("Urutan warna sudah disembunyikan. Pilih warna sesuai urutannya.")
+            st.success("Benda-benda sudah disembunyikan. Tuliskan warna yang kamu ingat dari kiri ke kanan.")
             with st.form("memory_color_form"):
-                answers = [
-                    st.selectbox(
-                        f"Warna ke-{index}",
-                        COLOR_OPTIONS,
-                        key=f"memory_color_answer_{index}"
-                    )
-                    for index in range(1, 6)
-                ]
+                answers = st.text_input(
+                    "Urutan warna (pisahkan dengan koma)",
+                    key="memory_color_answer"
+                )
                 if st.form_submit_button("Lanjut ke Variasi Berikutnya ➡️"):
                     st.session_state.survey_data["memory_color_target"] = st.session_state.memory_color_target
                     st.session_state.survey_data["memory_color_answer"] = answers

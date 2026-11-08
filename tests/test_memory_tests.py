@@ -4,7 +4,7 @@ from io import BytesIO
 
 from modules.memory_tests import (
     AYAH_ORDER_CHOICES,
-    count_arabic_words_recalled,
+    score_arabic_word_meanings,
     create_sound_sequence_audio,
     score_ayah_order,
     score_sequence,
@@ -12,17 +12,24 @@ from modules.memory_tests import (
 
 
 class AdditionalMemoryTests(unittest.TestCase):
-    def test_arabic_words_are_counted_with_or_without_diacritics(self):
-        answer = "كتاب نور masjid quran"
-        self.assertEqual(count_arabic_words_recalled(answer), 4)
+    def test_arabic_vocabulary_requires_correct_meanings(self):
+        answer = "كِتَابٌ = buku\ncahaya = نُورٌ\nqalam = pena\nmasjid = buku"
+        self.assertEqual(score_arabic_word_meanings(answer), 3)
+        self.assertEqual(score_arabic_word_meanings("kitab = buku\nكتاب = buku"), 1)
 
-    def test_ayah_order_accepts_only_the_correct_first_verse(self):
-        self.assertEqual(score_ayah_order(AYAH_ORDER_CHOICES[0]), 1)
-        self.assertEqual(score_ayah_order(AYAH_ORDER_CHOICES[1]), 0)
+    def test_ayah_order_accepts_only_correct_choice_at_the_end(self):
+        self.assertEqual(score_ayah_order(AYAH_ORDER_CHOICES[-1]), 1)
+        self.assertTrue(all(score_ayah_order(choice) == 0 for choice in AYAH_ORDER_CHOICES[:-1]))
 
     def test_color_and_sound_sequences_score_matching_positions(self):
-        self.assertEqual(score_sequence(["Merah", "Biru", "Hijau"], ["Merah", "Hijau", "Hijau"]), 2)
-        self.assertEqual(score_sequence(["Pendek", "Panjang"], ["Sedang", "Panjang"]), 1)
+        self.assertEqual(
+            score_sequence("Merah, Hijau, Hijau, Kuning, Ungu", ["Merah", "Biru", "Hijau", "Kuning", "Ungu"]),
+            4
+        )
+        self.assertEqual(
+            score_sequence(["Pendek", "Panjang", "Sedang", "Panjang"], ["Sedang", "Panjang", "Sedang", "Panjang"]),
+            3
+        )
 
     def test_sound_sequence_is_a_valid_wav_audio_clip(self):
         content = create_sound_sequence_audio(["Pendek", "Sedang", "Panjang"])

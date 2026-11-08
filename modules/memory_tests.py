@@ -10,21 +10,44 @@ ARABIC_MEMORY_WORDS = [
     "مَاءٌ", "بَيْتٌ", "مَسْجِدٌ", "قُرْآنٌ"
 ]
 
-SURAH_AL_IKHLAS = (
-    "قُلْ هُوَ اللَّهُ أَحَدٌ\n"
-    "اللَّهُ الصَّمَدُ\n"
-    "لَمْ يَلِدْ وَلَمْ يُولَدْ\n"
-    "وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ"
-)
+ARABIC_WORD_MEANINGS = {
+    "كتاب": {"buku", "kitab"},
+    "قلم": {"pena", "pulpen"},
+    "نور": {"cahaya", "sinar"},
+    "باب": {"pintu"},
+    "ماء": {"air"},
+    "بيت": {"rumah"},
+    "مسجد": {"masjid"},
+    "قران": {"alquran", "quran", "al-quran"}
+}
+ARABIC_WORD_ALIASES = {
+    "كتاب": {"kitab", "kitabun"},
+    "قلم": {"qalam", "qalamun"},
+    "نور": {"nur", "noor"},
+    "باب": {"bab", "baab"},
+    "ماء": {"maa", "maaun"},
+    "بيت": {"bait", "bayt", "baitun"},
+    "مسجد": {"masjid"},
+    "قران": {"quran", "qur"}
+}
 
 AYAH_ORDER_CHOICES = [
-    "قُلْ هُوَ اللَّهُ أَحَدٌ",
-    "هُوَ قُلْ اللَّهُ أَحَدٌ",
-    "قُلْ اللَّهُ أَحَدٌ هُوَ",
-    "أَحَدٌ هُوَ قُلْ اللَّهُ"
+    "مَعَ اللَّهِ إِنَّ الصَّابِرِينَ",
+    "إِنَّ الصَّابِرِينَ مَعَ اللَّهِ",
+    "إِنَّ الصَّابِرِينَ اللَّهَ مَعَ",
+    "إِنَّ اللَّهَ مَعَ الصَّابِرِينَ"
 ]
+AYAH_MEMORY_EXCERPT = "وَاسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ ۚ إِنَّ اللَّهَ مَعَ الصَّابِرِينَ"
 
 COLOR_OPTIONS = ["Merah", "Biru", "Hijau", "Kuning", "Ungu"]
+COLOR_HEX = {
+    "Merah": "#e53935",
+    "Biru": "#1e88e5",
+    "Hijau": "#43a047",
+    "Kuning": "#fdd835",
+    "Ungu": "#8e24aa"
+}
+COLOR_SHAPES = ["●", "■", "▲", "◆", "★"]
 SOUND_OPTIONS = ["Pendek", "Sedang", "Panjang"]
 SOUND_DURATIONS = {"Pendek": 0.16, "Sedang": 0.34, "Panjang": 0.56}
 
@@ -40,30 +63,51 @@ def normalize_arabic_words(text):
     return set(re.findall(r"[\u0621-\u064A]+", text))
 
 
-def count_arabic_words_recalled(answer):
-    aliases = [
-        {"كتاب", "kitab", "kitabun"},
-        {"قلم", "qalam", "qalamun"},
-        {"نور", "nur", "noor"},
-        {"باب", "bab", "baab"},
-        {"ماء", "ما", "maa", "maaun"},
-        {"بيت", "bait", "bayt", "baitun"},
-        {"مسجد", "masjid"},
-        {"قران", "قرآن", "quran", "qur'an"}
-    ]
-    arabic_answer = normalize_arabic_words(answer)
-    latin_answer = set(re.findall(r"[a-z']+", str(answer or "").casefold()))
-    return sum(bool(words.intersection(arabic_answer | latin_answer)) for words in aliases)
+def score_arabic_word_meanings(answer):
+    correct = 0
+    recalled_words = set()
+    for line in str(answer or "").splitlines():
+        parts = re.split(r"\s*(?:=|:|->|—|–)\s*", line, maxsplit=1)
+        if len(parts) != 2:
+            continue
+        left, right = parts
+        left_arabic = normalize_arabic_words(left)
+        right_arabic = normalize_arabic_words(right)
+        left_latin = set(re.findall(r"[a-z]+", left.casefold()))
+        right_latin = set(re.findall(r"[a-z]+", right.casefold()))
+
+        for arabic_word, meanings in ARABIC_WORD_MEANINGS.items():
+            if arabic_word in recalled_words:
+                continue
+            aliases = ARABIC_WORD_ALIASES[arabic_word]
+            left_is_word = arabic_word in left_arabic or bool(aliases.intersection(left_latin))
+            right_is_word = arabic_word in right_arabic or bool(aliases.intersection(right_latin))
+            if left_is_word:
+                meaning_arabic, meaning_latin = right_arabic, right_latin
+            elif right_is_word:
+                meaning_arabic, meaning_latin = left_arabic, left_latin
+            else:
+                continue
+            if meanings.intersection(meaning_arabic | meaning_latin):
+                correct += 1
+                recalled_words.add(arabic_word)
+                break
+    return correct
 
 
 def score_ayah_order(answer):
-    return int(answer == AYAH_ORDER_CHOICES[0])
+    return int(answer == AYAH_ORDER_CHOICES[-1])
 
 
 def score_sequence(answer, target):
+    if isinstance(answer, str):
+        answer = [value.strip().casefold() for value in re.split(r"[,،\s]+", answer) if value.strip()]
     if not isinstance(answer, (list, tuple)) or not isinstance(target, (list, tuple)):
         return 0
-    return sum(actual == expected for actual, expected in zip(answer, target))
+    return sum(
+        str(actual).strip().casefold() == str(expected).strip().casefold()
+        for actual, expected in zip(answer, target)
+    )
 
 
 def create_sound_sequence_audio(sequence, sample_rate=16000):
