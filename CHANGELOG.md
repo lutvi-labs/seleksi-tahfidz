@@ -2,6 +2,18 @@
 
 Semua perubahan penting pada proyek ini akan didokumentasikan dalam file ini.
 
+## [Unreleased]
+### Diubah
+- Menghapus keputusan otomatis lolos/tidak lolos; skor kesiapan santri baru kini berupa indeks berbobot 0-100 dan bukan probabilitas keberhasilan.
+- Respons RB-5 tidak mengurangi skor kesiapan dan tetap ditampilkan terpisah sebagai bahan pendampingan.
+- Mengganti ekspor laporan PDF dengan laporan DOCX editable yang memuat rincian hasil tes dan grafik radar/skor.
+- Memperbarui analisis AI agar berfokus pada rekomendasi pendampingan, tanpa diagnosis atau keputusan penerimaan.
+### Ditambahkan
+- Pilihan jenis asesmen santri baru atau santri aktif, dengan ringkasan dashboard dan laporan yang dipisahkan berdasarkan jenis santri.
+- Untuk santri aktif, pencatatan kelas, lama mondok, progres hafalan dan murajaah, perasaan belajar, kendala, motivasi, dan harapan; laporan DOCX aktif menyertakan grafik progres.
+- Pengujian otomatis untuk perhitungan skor dan pembuatan laporan DOCX kedua jenis santri.
+- Dokumentasi batasan indeks kesiapan dan usulan validasi menggunakan data capaian hafalan longitudinal.
+
 ## [1.0.0] - 2026-11-06 (Rilis Perdana)
 ### Ditambahkan
 - **Modul Survei Peserta**: Integrasi form Streamlit native sebagai pengganti PsyToolkit.

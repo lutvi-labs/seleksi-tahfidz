@@ -74,8 +74,8 @@ class AIAnalyzer:
             str: Interpretasi naratif dari AI
         """
         prompt = f"""
-Analisis profil psikologis calon santri tahfidz berikut untuk program 
-menghafal 30 juz Al-Qur'an dalam waktu kurang dari 3 tahun:
+Analisis asesmen calon atau santri aktif tahfidz berikut untuk mendukung
+pendampingan pada program menghafal 30 juz Al-Qur'an:
 
 ## DATA SANTRI
 - Nama: {row.get('nama_lengkap', 'N/A')}
@@ -99,11 +99,14 @@ menghafal 30 juz Al-Qur'an dalam waktu kurang dari 3 tahun:
 - Tipe: {row.get('Motivasi_Tipe', 'N/A')}
 - Label: {row.get('Motivasi_Label', 'N/A')}
 
-## CONFIDENCE SCORE
-- {row.get('Confidence_Score', 'N/A')}/100
-
-## KEPUTUSAN SISTEM
-- {row.get('Keputusan', 'N/A')}
+## SKOR KESIAPAN
+- {row.get('Skor_Kesiapan_30Juz', 'N/A')}/100 (indeks asesmen, bukan probabilitas keberhasilan)
+- Jenis santri: {row.get('Jenis_Santri', 'N/A')}
+- Kelas dan lama mondok: {row.get('kelas_saat_ini', 'N/A')}, {row.get('lama_mondok_bulan', 'N/A')} bulan
+- Hafalan dikuasai/terjaga: {row.get('juz_dikuasai', 'N/A')} / {row.get('juz_terjaga', 'N/A')} juz
+- Hafalan baru 3 bulan terakhir: {row.get('juz_baru_3_bulan', 'N/A')} juz
+- Perasaan/kendala belajar: {row.get('perasaan_belajar', 'N/A')} / {row.get('kendala_belajar', 'N/A')}
+- Motivasi: {row.get('motivasi', 'N/A')}
 
 ---
 
@@ -118,8 +121,8 @@ Berikan analisis dalam format berikut:
 ### 3. AREA PERHATIAN
 (Bullet points area yang perlu diperhatikan/diwaspadai)
 
-### 4. REKOMENDASI
-(Rekomendasi spesifik: diterima/ditolak/bersyarat, dan langkah selanjutnya)
+### 4. REKOMENDASI PENDAMPINGAN
+(Langkah dukungan belajar dan hafalan yang spesifik; jangan memberi keputusan penerimaan atau diagnosis)
 
 ### 5. CATATAN UNTUK MUSYRIF/PEMBIMBING
 (Tips spesifik jika santri ini diterima)
@@ -163,11 +166,6 @@ Analisis kohort calon santri tahfidz (program 30 juz < 3 tahun):
 ## DISTRIBUSI CD-RISC
 - Mean: {df_summary['cdrisc_mean']:.1f}, SD: {df_summary['cdrisc_sd']:.1f}
 
-## HASIL SELEKSI
-- Lolos: {df_summary['lolos']} ({df_summary['lolos_pct']:.1f}%)
-- Lolos Bersyarat: {df_summary['bersyarat']} ({df_summary['bersyarat_pct']:.1f}%)
-- Tidak Lolos: {df_summary['tidak_lolos']} ({df_summary['tidak_lolos_pct']:.1f}%)
-
 ## DISTRIBUSI MOTIVASI
 {df_summary['motivasi_dist']}
 
@@ -178,9 +176,8 @@ Berikan analisis kohort meliputi:
 2. **Temuan Menarik**: Pola-pola yang perlu diperhatikan
 3. **Perbandingan Subskala**: Apakah ada ketimpangan antara Grit CI vs PE?
 4. **Red Flags Kohort**: Apakah ada tren yang mengkhawatirkan?
-5. **Rekomendasi untuk Pesantren**: Saran persiapan berdasarkan profil kohort
-6. **Estimasi Keberhasilan**: Berdasarkan data ini, berapa persen yang 
-   diperkirakan bisa menyelesaikan 30 juz dalam < 3 tahun?
+5. **Rekomendasi untuk Pesantren**: Saran persiapan dan pendampingan berdasarkan profil kohort.
+Jangan menyimpulkan probabilitas keberhasilan atau keputusan penerimaan dari data asesmen ini.
 """
         return self._call_ai(prompt)
     

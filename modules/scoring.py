@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+import re
 
 def score_dass21(df):
     d_items = [f'dass_d{i}' for i in range(1, 8)]
@@ -38,7 +38,7 @@ def score_dass21(df):
 
 def score_grit8(df):
     gs_cols = [f'gs{i}' for i in range(1, 9)]
-    rev_items = ['gs1', 'gs3', 'gs5', 'gs7', 'gs8']
+    rev_items = ['gs1', 'gs3', 'gs5', 'gs7']
     
     df_grit = df[[c for c in gs_cols if c in df.columns]].copy()
     for col in rev_items:
@@ -70,16 +70,15 @@ def score_cdrisc25(df):
     return df
 
 def score_tahap_lanjut(df):
-    keywords = ["alquran", "masjid", "hafalan", "pahala", "surga", "doa", "ustadz", "ustad", "sabar", "ikhlas", "amal"]
+    memory_words = {
+        "alquran", "masjid", "hafalan", "pahala", "surga",
+        "doa", "ustadz", "sabar", "ikhlas", "amal"
+    }
     
     def count_memori(val):
         if not isinstance(val, str): return 0
-        val_lower = val.lower()
-        score = 0
-        for kw in keywords:
-            if kw in val_lower:
-                score += 1
-        return min(score, 10)
+        recalled_words = set(re.findall(r"\w+", val.casefold()))
+        return len(memory_words.intersection(recalled_words))
 
     if 'memori_jawaban' in df.columns:
         df['Memori_Score'] = df['memori_jawaban'].apply(count_memori)
@@ -90,32 +89,22 @@ def score_tahap_lanjut(df):
     df['RB_Score'] = df[[c for c in rb_cols if c in df.columns]].sum(axis=1)
     return df
 
-def make_decision(row):
+def calculate_readiness_score(row):
     dep = row.get('DASS_Depresi', 0)
     anx = row.get('DASS_Anxiety', 0)
     str_s = row.get('DASS_Stress', 0)
     grit = row.get('Grit_Score', 0)
     cdrisc = row.get('CDRISC_Score', 0)
     mem = row.get('Memori_Score', 0)
-    rb = row.get('RB_Score', 0)
-
-    if dep >= 21 or anx >= 15 or str_s >= 26 or rb >= 2 or mem < 3:
-        decision = 'TIDAK LOLOS'
-    elif dep <= 9 and anx <= 7 and str_s <= 14 and grit >= 3.5 and cdrisc >= 65 and mem >= 7 and rb == 0:
-        decision = 'LOLOS'
-    else:
-        decision = 'LOLOS BERSYARAT'
-
     dass_health = max(0, 100 - ((dep + anx + str_s) / 126.0 * 100))
     grit_pct = (grit / 5.0) * 100
     cdrisc_pct = (cdrisc / 100.0) * 100
     mem_pct = (mem / 10.0) * 100
-    rb_penalty = rb * 15
 
-    conf = (dass_health * 0.25) + (grit_pct * 0.25) + (cdrisc_pct * 0.3) + (mem_pct * 0.2) - rb_penalty
-    conf = max(0.0, min(100.0, conf))
+    readiness = (dass_health * 0.25) + (grit_pct * 0.25) + (cdrisc_pct * 0.3) + (mem_pct * 0.2)
+    readiness = max(0.0, min(100.0, readiness))
 
-    return decision, round(conf, 1)
+    return round(readiness, 1)
 
 def score_all(data_input):
     # Aman menangani masukan Dict maupun DataFrame
@@ -131,15 +120,16 @@ def score_all(data_input):
     df = score_cdrisc25(df)
     df = score_tahap_lanjut(df)
 
-    decisions = []
-    confidences = []
-    for idx, row in df.iterrows():
-        dec, conf = make_decision(row)
-        decisions.append(dec)
-        confidences.append(conf)
-
-    df['Keputusan'] = decisions
-    df['Confidence'] = confidences
+    df['Jenis_Santri'] = (
+        df.get('jenis_santri', pd.Series('santri_baru', index=df.index))
+        .fillna('santri_baru')
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    df['Skor_Kesiapan_30Juz'] = df.apply(calculate_readiness_score, axis=1)
+    df.loc[df['Jenis_Santri'] == 'santri_aktif', 'Skor_Kesiapan_30Juz'] = float('nan')
+    df = df.drop(columns=['Keputusan', 'Confidence'], errors='ignore')
 
     if is_single_dict:
         return df.iloc[0].to_dict()

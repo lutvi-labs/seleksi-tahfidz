@@ -17,9 +17,9 @@ def analyze_cohort(df):
         return "⚠️ Data peserta masih kosong."
     
     total = len(df)
-    lolos = len(df[df['Keputusan'] == 'LOLOS'])
-    bersyarat = len(df[df['Keputusan'] == 'LOLOS BERSYARAT'])
-    tidak_lolos = len(df[df['Keputusan'] == 'TIDAK LOLOS'])
+    type_col = df.get('Jenis_Santri', pd.Series('santri_baru', index=df.index))
+    new_students = df[type_col == 'santri_baru']
+    current_students = df[type_col == 'santri_aktif']
 
     # Menggunakan Memori_Score (Sesuai scoring.py)
     avg_dep = df['DASS_Depresi'].mean() if 'DASS_Depresi' in df.columns else 0
@@ -28,17 +28,18 @@ def analyze_cohort(df):
     avg_grit = df['Grit_Score'].mean() if 'Grit_Score' in df.columns else 0
     avg_cdrisc = df['CDRISC_Score'].mean() if 'CDRISC_Score' in df.columns else 0
     avg_mem = df['Memori_Score'].mean() if 'Memori_Score' in df.columns else 0
-    avg_conf = df['Confidence'].mean() if 'Confidence' in df.columns else 0
+    avg_readiness = new_students['Skor_Kesiapan_30Juz'].mean() if 'Skor_Kesiapan_30Juz' in new_students.columns and not new_students.empty else 0
+    avg_juz = current_students['juz_dikuasai'].mean() if 'juz_dikuasai' in current_students.columns and not current_students.empty else 0
 
     prompt = f"""
-    Anda adalah seorang Psikolog Klinis dan Konsultan Pendidikan Tahfidz Al-Qur'an Senior.
-    Berikut adalah data statistik hasil seleksi psikotes angkatan calon santri tahfidz (target 30 juz < 3 tahun):
+    Anda adalah konsultan pendidikan Tahfidz Al-Qur'an.
+    Berikut data ringkas asesmen dan perkembangan santri (target hafalan 30 juz):
 
     - Total Peserta: {total} orang
-    - Lolos Murni: {lolos} ({lolos/total*100:.1f}%)
-    - Lolos Bersyarat: {bersyarat} ({bersyarat/total*100:.1f}%)
-    - Tidak Lolos: {tidak_lolos} ({tidak_lolos/total*100:.1f}%)
-    - Rata-rata Confidence Score: {avg_conf:.1f}/100
+    - Santri Baru: {len(new_students)} orang
+    - Santri Aktif: {len(current_students)} orang
+    - Rata-rata Skor Kesiapan Santri Baru: {avg_readiness:.1f}/100
+    - Rata-rata Hafalan Santri Aktif: {avg_juz:.1f} juz
     - Rata-rata Skor Depresi (0-42): {avg_dep:.1f}
     - Rata-rata Skor Kecemasan (0-42): {avg_anx:.1f}
     - Rata-rata Skor Stres (0-42): {avg_str:.1f}
@@ -46,11 +47,12 @@ def analyze_cohort(df):
     - Rata-rata Resiliensi/CD-RISC (0-100): {avg_cdrisc:.1f}
     - Rata-rata Memori Daya Ingat (0-10): {avg_mem:.1f} kata
 
-    Berikan analisis komprehensif dalam format Markdown yang rapi meliputi:
-    1. **Ringkasan Eksekutif Kesiapan Angkatan**
-    2. **Analisis Risiko Kesehatan Mental & Ketahanan Psikologis**
-    3. **Rekomendasi Kurikulum & Program Pendampingan Pengasuhan**
-    4. **Strategi Mitigasi Santri Lolos Bersyarat & Tidak Lolos**
+    Skor kesiapan adalah indeks ringkasan yang belum divalidasi sebagai probabilitas keberhasilan.
+    Jangan memberikan keputusan penerimaan, diagnosis klinis, atau menyimpulkan peluang keberhasilan.
+    Berikan analisis Markdown yang memisahkan santri baru dan aktif, membahas:
+    1. Ringkasan deskriptif dan keterbatasan data.
+    2. Kekuatan dan area yang sebaiknya mendapat dukungan (tanpa diagnosis).
+    3. Rekomendasi pendampingan yang praktis dan tidak menghukum.
     """
 
     model = init_gemini()
@@ -59,9 +61,9 @@ def analyze_cohort(df):
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:
-            return f"⚠️ **API AI mengalami kendala ({e}). Menampilkan laporan otomatis bawaan:**\n\n" + _fallback_cohort_report(total, lolos, bersyarat, tidak_lolos, avg_conf, avg_grit, avg_cdrisc, avg_mem)
+            return f"⚠️ **API AI mengalami kendala ({e}). Menampilkan ringkasan otomatis:**\n\n" + _fallback_cohort_report(total, len(new_students), len(current_students), avg_readiness, avg_grit, avg_cdrisc, avg_mem)
     else:
-        return _fallback_cohort_report(total, lolos, bersyarat, tidak_lolos, avg_conf, avg_grit, avg_cdrisc, avg_mem)
+        return _fallback_cohort_report(total, len(new_students), len(current_students), avg_readiness, avg_grit, avg_cdrisc, avg_mem)
 
 # --- FUNGSI BARU: ANALISIS INDIVIDUAL DENGAN AI ---
 def analyze_individual(row):
@@ -74,8 +76,14 @@ def analyze_individual(row):
     usia = str(_get_val('usia', '-'))
     jk = str(_get_val('jenis_kelamin', '-'))
     asal = str(_get_val('asal_sekolah', '-'))
-    keputusan = str(_get_val('Keputusan', '-'))
-    confidence = float(_get_val('Confidence', 0.0))
+    jenis_santri = str(_get_val('Jenis_Santri', _get_val('jenis_santri', 'santri_baru')))
+    readiness_value = _get_val('Skor_Kesiapan_30Juz', 0.0)
+    readiness = float(readiness_value) if jenis_santri == 'santri_baru' and pd.notna(readiness_value) else None
+    readiness_text = (
+        f"{readiness:.1f}/100 (indeks, bukan probabilitas)"
+        if readiness is not None
+        else "Tidak dihitung untuk santri aktif"
+    )
 
     dep = float(_get_val('DASS_Depresi', 0))
     anx = float(_get_val('DASS_Anxiety', 0))
@@ -85,16 +93,31 @@ def analyze_individual(row):
     mem = float(_get_val('Memori_Score', 0))
     rb = float(_get_val('RB_Score', 0))
     motivasi = str(_get_val('motivasi', '-'))
+    kelas = str(_get_val('kelas_saat_ini', '-'))
+    lama_mondok = str(_get_val('lama_mondok_bulan', '-'))
+    juz_dikuasai = str(_get_val('juz_dikuasai', '-'))
+    juz_terjaga = str(_get_val('juz_terjaga', '-'))
+    juz_baru_3_bulan = str(_get_val('juz_baru_3_bulan', '-'))
+    perasaan = str(_get_val('perasaan_belajar', '-'))
+    kendala = str(_get_val('kendala_belajar', '-'))
+    harapan = str(_get_val('harapan_belajar', '-'))
 
     prompt = f"""
-    Anda adalah Psikolog Anak & Konsultan Pengasuhan Tahfidz Qur'an Senior.
-    Buatkan laporan diagnostik psikologis individual yang hangat, mendalam, dan solutif untuk calon santri berikut:
+    Anda adalah konsultan pendidikan Tahfidz Al-Qur'an yang suportif.
+    Buatkan ringkasan asesmen dan rekomendasi pendampingan individual. Hindari diagnosis klinis,
+    keputusan diterima/ditolak, dan klaim bahwa skor adalah probabilitas keberhasilan.
 
     - Nama Santri: {nama}
     - Usia / Jenis Kelamin: {usia} Tahun / {jk}
     - Asal Sekolah: {asal}
-    - Hasil Keputusan Seleksi: {keputusan} (Confidence Score: {confidence:.1f}/100)
+    - Jenis Santri: {jenis_santri}
+    - Skor Kesiapan 30 Juz: {readiness_text}
     - Motivasi Santri: "{motivasi}"
+    - Harapan Belajar: "{harapan}"
+    - Kelas / Lama di Pondok (bulan): {kelas} / {lama_mondok}
+    - Hafalan dikuasai / terjaga / tambahan 3 bulan terakhir: {juz_dikuasai} / {juz_terjaga} / {juz_baru_3_bulan} juz
+    - Perasaan belajar: {perasaan}
+    - Kendala yang dilaporkan: "{kendala}"
 
     Hasil Tes Psikotes:
     1. Kesehatan Mental (DASS-21 Sub-skala): Depresi={dep:.0f}, Kecemasan={anx:.0f}, Stres={str_s:.0f} (Skor 0-42)
@@ -104,11 +127,11 @@ def analyze_individual(row):
     5. Indikator Risiko Perilaku (RB-5): {rb:.0f}
 
     Formatlah balasan Anda menggunakan Markdown yang indah dengan struktur berikut:
-    ### 👤 Ringkasan Profil Psikologis {nama}
-    ### 💪 Potensi & Kekuatan Utama
-    ### ⚠️ Area Perhatian & Potensi Hambatan Mental
-    ### 📖 Rekomendasi Metode Menghafal & Pendampingan Ustadz/Ustadzah
-    ### 🌟 Pesan Motivasi Islami Khusus untuk Santri
+    ### Ringkasan asesmen {nama}
+    ### Kekuatan dan faktor pendukung
+    ### Hal yang perlu didukung (bukan diagnosis)
+    ### Rekomendasi pendampingan dan metode belajar
+    ### Pesan penyemangat
     """
 
     model = init_gemini()
@@ -117,30 +140,35 @@ def analyze_individual(row):
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:
-            return f"⚠️ **API AI tidak merespon ({e}). Menampilkan analisis bawaan sistem:**\n\n" + _fallback_individual_report(nama, keputusan, confidence, grit, cdrisc, mem, dep, anx, str_s)
+            return f"⚠️ **API AI tidak merespon ({e}). Menampilkan analisis bawaan sistem:**\n\n" + _fallback_individual_report(nama, jenis_santri, readiness, grit, cdrisc, mem, dep, anx, str_s)
     else:
-        return _fallback_individual_report(nama, keputusan, confidence, grit, cdrisc, mem, dep, anx, str_s)
+        return _fallback_individual_report(nama, jenis_santri, readiness, grit, cdrisc, mem, dep, anx, str_s)
 
-def _fallback_cohort_report(total, lolos, bersyarat, tidak_lolos, avg_conf, avg_grit, avg_cdrisc, avg_mem):
+def _fallback_cohort_report(total, new_students, current_students, avg_readiness, avg_grit, avg_cdrisc, avg_mem):
     return f"""
     ### 📊 Ringkasan Laporan Angkatan (Format Standar)
-    * **Rata-rata Kesiapan:** Confidence Score angkatan berada pada tingkat **{avg_conf:.1f}/100**.
-    * **Sebaran Kelolosan:** Dari **{total}** santri, **{lolos}** ({lolos/total*100:.1f}%) Lolos Murni, **{bersyarat}** ({bersyarat/total*100:.1f}%) Lolos Bersyarat, dan **{tidak_lolos}** ({tidak_lolos/total*100:.1f}%) Tidak Lolos.
+    * **Jumlah Peserta:** {total} (santri baru: {new_students}, santri aktif: {current_students}).
+    * **Rata-rata Skor Kesiapan Santri Baru:** **{avg_readiness:.1f}/100** (indeks asesmen, bukan probabilitas).
     * **Rata-rata Parameter:** Ketekunan (Grit) **{avg_grit:.2f}/5.0**, Resiliensi **{avg_cdrisc:.1f}/100**, Memori **{avg_mem:.1f}/10 kata**.
 
     *(Catatan: Untuk analisis narrative AI lengkap, pastikan `GEMINI_API_KEY` terisi di `.streamlit/secrets.toml`)*
     """
 
-def _fallback_individual_report(nama, keputusan, confidence, grit, cdrisc, mem, dep, anx, str_s):
+def _fallback_individual_report(nama, jenis_santri, readiness, grit, cdrisc, mem, dep, anx, str_s):
+    readiness_text = (
+        f"Skor Kesiapan Target 30 Juz adalah **{readiness:.1f}/100**. Ini indeks asesmen, bukan probabilitas keberhasilan atau keputusan penerimaan."
+        if jenis_santri == "santri_baru" and readiness is not None
+        else "Skor kesiapan penerimaan tidak digunakan untuk santri aktif."
+    )
     return f"""
-    ### 👤 Ringkasan Profil Psikologis {nama}
-    Santri ini memperoleh hasil **{keputusan}** dengan Confidence Score sebesar **{confidence:.1f}/100**.
+    ### 👤 Ringkasan Asesmen {nama}
+    {readiness_text}
 
     ### 💪 Potensi & Kekuatan Utama
     * Daya ingat memori jangka pendek mampu merekam **{mem:.0f} dari 10 kata**.
     * Tingkat ketekunan (Grit) bernilai **{grit:.2f}/5.0** dan resiliensi **{cdrisc:.0f}/100**.
 
-    ### ⚠️ Area Perhatian & Tantangan Mental
+    ### ⚠️ Area yang dapat didukung
     * Skor sub-skala DASS-21: Depresi **{dep:.0f}**, Kecemasan **{anx:.0f}**, Stres **{str_s:.0f}**.
     * Santri memerlukan suasana belajar yang sejuk, nyaman, dan terhindar dari tekanan tinggi.
 

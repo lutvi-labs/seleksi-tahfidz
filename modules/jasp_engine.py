@@ -2,7 +2,7 @@ import pandas as pd
 import pingouin as pg
 
 def get_descriptives(df):
-    score_cols = ["DASS_Depresi", "DASS_Kecemasan", "DASS_Stres", "Grit_Skor", "CDRISC_Total", "Skor_Memori", "Skor_RB", "Confidence"]
+    score_cols = ["DASS_Depresi", "DASS_Anxiety", "DASS_Stress", "Grit_Score", "CDRISC_Score", "Memori_Score", "RB_Score", "Skor_Kesiapan_30Juz"]
     exist = [c for c in score_cols if c in df.columns]
     if not exist: return pd.DataFrame()
     
@@ -14,7 +14,7 @@ def get_descriptives(df):
     return desc.round(2)
 
 def get_correlations(df):
-    score_cols = ["DASS_Depresi", "Grit_Skor", "CDRISC_Total", "Skor_Memori", "Skor_RB", "Confidence"]
+    score_cols = ["DASS_Depresi", "Grit_Score", "CDRISC_Score", "Memori_Score", "RB_Score", "Skor_Kesiapan_30Juz"]
     exist = [c for c in score_cols if c in df.columns]
     if len(exist) < 2: return pd.DataFrame()
     

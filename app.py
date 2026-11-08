@@ -140,30 +140,62 @@ def show_survey():
             st.rerun()
 
     step = st.session_state.survey_step
-    total_steps = 7
+    if step == 1:
+        jenis_santri_label = st.radio(
+            "Pilih jenis tes",
+            ["Santri baru", "Santri yang sudah belajar di pondok"],
+            horizontal=True,
+            key="jenis_santri_pilihan"
+        )
+        active_santri = jenis_santri_label.startswith("Santri yang")
+    else:
+        active_santri = st.session_state.survey_data.get("jenis_santri") == "santri_aktif"
+    total_steps = 8 if active_santri else 7
 
-    if step <= total_steps:
-        st.progress(step / total_steps)
+    if step <= total_steps + (0 if active_santri else 1):
+        progress_step = step - 1 if not active_santri and step > 6 else step
+        st.progress(min(progress_step, total_steps) / total_steps)
 
     # ------------------ STEP 1: DATA DIRI ------------------
     if step == 1:
-        st.subheader("Langkah 1 dari 7: Isi Data Diri dulu ya")
+        st.subheader(f"Langkah 1 dari {total_steps}: Isi Data Diri dulu ya")
         with st.form("step1"):
+            jenis_santri = "santri_aktif" if jenis_santri_label.startswith("Santri yang") else "santri_baru"
             jk = st.selectbox("Jenis Kelamin", ["Laki-laki", "Perempuan"])
             usia = st.number_input("Umur Berapa Tahun Sekarang?", min_value=8, max_value=25, value=11)
             hp = st.text_input("Nomor WA (Milik Kamu / Orang Tua)")
             asal = st.text_input("Asal Sekolah / SD / MI / SMP")
+            kelas = ""
+            lama_mondok_bulan = 0
+            if jenis_santri == "santri_aktif":
+                kelas = st.text_input("Kelas berapa saat ini?", placeholder="Contoh: 2 SMP")
+                lama_mondok_bulan = st.number_input(
+                    "Sudah berapa lama belajar di pondok? (bulan)",
+                    min_value=1,
+                    max_value=240,
+                    value=12
+                )
             
             if st.form_submit_button("Lanjut ke Pertanyaan Berikutnya ➡️"):
+                if jenis_santri == "santri_aktif" and not kelas.strip():
+                    st.error("Kelas saat ini perlu diisi.")
+                    st.stop()
                 st.session_state.survey_data.update({
-                    "nama": user.get('nama_lengkap', ''), "jenis_kelamin": jk, "usia": usia, "no_hp": hp, "asal_sekolah": asal
+                    "nama": user.get('nama_lengkap', ''),
+                    "jenis_kelamin": jk,
+                    "usia": usia,
+                    "no_hp": hp,
+                    "asal_sekolah": asal,
+                    "jenis_santri": jenis_santri,
+                    "kelas_saat_ini": kelas,
+                    "lama_mondok_bulan": lama_mondok_bulan
                 })
                 st.session_state.survey_step = 2
                 st.rerun()
 
     # ------------------ STEP 2: DS-21 ------------------
     elif step == 2:
-        st.subheader("Langkah 2 dari 7: Perasaanmu Sehari-hari (DS-21)")
+        st.subheader(f"Langkah 2 dari {total_steps}: Perasaanmu Sehari-hari (DS-21)")
         st.info("Pilihlah seberapa SERING kamu merasakan hal-hal berikut dalam 1 minggu terakhir:")
         
         options_dass = {"Tidak Pernah": 0, "Kadang-kadang": 1, "Sering": 2, "Hampir Setiap Hari": 3}
@@ -203,7 +235,7 @@ def show_survey():
 
     # ------------------ STEP 3: GS-8 ------------------
     elif step == 3:
-        st.subheader("Langkah 3 dari 7:  Tentang Dirimu(GS-8)")
+        st.subheader(f"Langkah 3 dari {total_steps}: Tentang Dirimu (GS-8)")
         st.info("Pilihlah seberapa SETUJU kamu dengan kalimat-kalimat di bawah ini:")
         
         options_gs = {"Sangat Tidak Setuju": 1, "Kurang Setuju": 2, "Netral / Kadang-kadang": 3, "Setuju": 4, "Sangat Setuju": 5}
@@ -230,7 +262,7 @@ def show_survey():
 
     # ------------------ STEP 4: CR-25 ------------------
     elif step == 4:
-        st.subheader("Langkah 4 dari 7: Tentang Dirimu lanjutan (CR-25)")
+        st.subheader(f"Langkah 4 dari {total_steps}: Tentang Dirimu lanjutan (CR-25)")
         st.info("Pilihlah seberapa SETUJU kamu dengan kalimat-kalimat ini berdasarkan sifat aslimu:")
         
         options_cr = {
@@ -276,7 +308,7 @@ def show_survey():
 
     # ------------------ STEP 5: TES MEMORI MV-10 (COUNTDOWN TIMER 15 DETIK) ------------------
     elif step == 5:
-        st.subheader("Langkah 5 dari 7: Saatnya Bermain (MV-10)")
+        st.subheader(f"Langkah 5 dari {total_steps}: Saatnya Bermain (MV-10)")
 
         if 'memori_started' not in st.session_state:
             st.session_state.memori_started = False
@@ -325,7 +357,7 @@ def show_survey():
 
     # ------------------ STEP 6: RB-5 ------------------
     elif step == 6:
-        st.subheader("Langkah 6 dari 7: Pertanyaan Kejujuran (RB-5)")
+        st.subheader(f"Langkah 6 dari {total_steps}: Pertanyaan Kejujuran (RB-5)")
         st.info("Jawablah dengan jujur ya, Allah Maha Mengetahui dan Melihat segala yang kita lakukan:")
         
         options_rb = {"Tidak Pernah": 0, "Pernah": 1}
@@ -344,28 +376,82 @@ def show_survey():
                 st.markdown("---")
             if st.form_submit_button("Lanjut ke Bagian Terakhir ➡️"):
                 for k, v in ans.items(): st.session_state.survey_data[k] = options_rb[v]
-                st.session_state.survey_step = 7
+                st.session_state.survey_step = 7 if st.session_state.survey_data.get("jenis_santri") == "santri_aktif" else 8
                 st.rerun()
 
-    # ------------------ STEP 7: MOTIVASI & SUBMIT ------------------
-    elif step == 7:
-        st.subheader("Langkah 7 dari 7: Cita-cita & Motivasi")
-        with st.form("step7"):
-            motivasi = st.text_area("Terakhir, ceritakan secara singkat ya, kenapa sih kamu ingin banget menjadi seorang Hafidz/Hafidzah 30 Juz Al-Qur'an?", height=150)
+    # ------------------ STEP 7: PROGRES SANTRI AKTIF ------------------
+    elif step == 7 and st.session_state.survey_data.get("jenis_santri") == "santri_aktif":
+        st.subheader(f"Langkah 7 dari {total_steps}: Perkembangan Belajar di Pondok")
+        st.info("Jawaban ini membantu pembimbing memahami perkembangan dan kebutuhanmu. Tidak ada jawaban benar atau salah.")
+        with st.form("step7_progress"):
+            juz_dikuasai = st.number_input(
+                "Perkiraan jumlah juz yang sudah dihafal",
+                min_value=0.0, max_value=30.0, value=0.0, step=0.5
+            )
+            juz_terjaga = st.number_input(
+                "Dari jumlah tersebut, berapa juz yang masih lancar saat murajaah?",
+                min_value=0.0, max_value=30.0, value=0.0, step=0.5
+            )
+            juz_baru_3_bulan = st.number_input(
+                "Perkiraan tambahan hafalan baru selama 3 bulan terakhir (juz)",
+                min_value=0.0, max_value=10.0, value=0.0, step=0.5
+            )
+            murajaah_menit = st.number_input(
+                "Rata-rata waktu murajaah setiap hari (menit)",
+                min_value=0, max_value=600, value=30, step=5
+            )
+            perasaan = st.selectbox(
+                "Bagaimana perasaanmu saat belajar dan menghafal belakangan ini?",
+                ["Sangat bersemangat", "Cukup bersemangat", "Biasa saja", "Sering merasa berat", "Sedang membutuhkan bantuan"]
+            )
+            kendala = st.text_area(
+                "Apa kendala terbesar yang kamu rasakan saat belajar atau menghafal?",
+                height=100
+            )
+            if st.form_submit_button("Lanjut ke Pertanyaan Berikutnya ➡️"):
+                if juz_terjaga > juz_dikuasai:
+                    st.error("Jumlah juz yang terjaga tidak boleh melebihi jumlah juz yang sudah dihafal.")
+                    st.stop()
+                st.session_state.survey_data.update({
+                    "juz_dikuasai": juz_dikuasai,
+                    "juz_terjaga": juz_terjaga,
+                    "juz_baru_3_bulan": juz_baru_3_bulan,
+                    "murajaah_menit_per_hari": murajaah_menit,
+                    "perasaan_belajar": perasaan,
+                    "kendala_belajar": kendala
+                })
+                st.session_state.survey_step = 8
+                st.rerun()
+
+    # ------------------ STEP 8: MOTIVASI & SUBMIT ------------------
+    elif step == 8:
+        st.subheader(f"Langkah {8 if active_santri else 7} dari {total_steps}: Cita-cita & Motivasi")
+        with st.form("step8"):
+            motivasi = st.text_area(
+                "Apa yang membuatmu tetap bersemangat belajar atau menghafal di pondok ini?"
+                if st.session_state.survey_data.get("jenis_santri") == "santri_aktif"
+                else "Apa yang membuatmu bersemangat untuk belajar dan menghafal di pesantren?",
+                height=120
+            )
+            alasan = st.text_area(
+                "Apa harapan atau tujuan yang ingin kamu capai selama belajar di pondok?",
+                height=100
+            )
             
             st.info("Bismillah, periksa lagi jawaban kamu dan niatkan karena Allah Ta'ala sebelum klik tombol di bawah ini ya.")
             if st.form_submit_button("Selesai & Kirim Semua Jawaban 🚀", type="primary"):
                 st.session_state.survey_data['motivasi'] = motivasi
+                st.session_state.survey_data['harapan_belajar'] = alasan
                 sukses = save_survey_response(user['id'], user['username'], st.session_state.survey_data)
                 
                 if sukses:
-                    st.session_state.survey_step = 8
+                    st.session_state.survey_step = 9
                     st.rerun()
                 else:
                     st.error("Waduh, koneksi terputus saat menyimpan data. Silakan klik tombol kirim sekali lagi.")
 
-    # ------------------ STEP 8: SELESAI (ISLAMI) ------------------
-    elif step == 8:
+    # ------------------ STEP 9: SELESAI (ISLAMI) ------------------
+    elif step == 9:
         st.balloons()
         st.markdown("<h2 style='text-align: center; color: #28a745;'>Alhamdulillah! Masya Allah! 🌟</h2>", unsafe_allow_html=True)
         st.success(f"Hebat sekali, {user.get('nama_lengkap', '')}! Kamu sudah menyelesaikan semua tugas dan pertanyaan dengan sangat baik.")
@@ -461,38 +547,34 @@ def show_dashboard():
 
     # ============ ROUTING MENU ============
     if menu == "🎛️ Dashboard":
-        st.subheader("Ringkasan Hasil Seleksi")
+        st.subheader("Ringkasan Hasil Asesmen")
+        peserta_baru = df[df["Jenis_Santri"] == "santri_baru"]
+        santri_aktif = df[df["Jenis_Santri"] == "santri_aktif"]
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Peserta Tes", len(df))
-        col2.metric("Lolos Murni", len(df[df['Keputusan'] == 'LOLOS']))
-        col3.metric("Lolos Bersyarat", len(df[df['Keputusan'] == 'LOLOS BERSYARAT']))
-        col4.metric("Tidak Lolos", len(df[df['Keputusan'] == 'TIDAK LOLOS']))
+        col2.metric("Santri Baru", len(peserta_baru))
+        col3.metric("Santri Aktif", len(santri_aktif))
+        avg_readiness = peserta_baru["Skor_Kesiapan_30Juz"].mean() if not peserta_baru.empty else 0
+        col4.metric("Rata-rata Skor Kesiapan Santri Baru", f"{avg_readiness:.1f}%")
 
-        c1, c2 = st.columns(2)
-        with c1:
-            import plotly.express as px
-            fig_pie = px.pie(
-                df, names='Keputusan', title='Proporsi Hasil Seleksi Santri', color='Keputusan',
-                color_discrete_map={
-                    'LOLOS': '#28a745',
-                    'LOLOS BERSYARAT': '#ffc107',
-                    'TIDAK LOLOS': '#dc3545'
-                }
+        if not peserta_baru.empty:
+            st.markdown("#### Skor Kesiapan Santri Baru")
+            st.caption("Indeks ringkasan hasil asesmen, bukan probabilitas keberhasilan atau keputusan penerimaan.")
+            st.dataframe(
+                peserta_baru.sort_values("Skor_Kesiapan_30Juz", ascending=False)[
+                    ["nama", "Skor_Kesiapan_30Juz", "DASS_Kategori_Depresi", "Grit_Kategori", "CDRISC_Kategori"]
+                ],
+                use_container_width=True
             )
-            st.plotly_chart(fig_pie, use_container_width=True)
-        with c2:
-            fig_scatter = px.scatter(
-                df, x='Grit_Score', y='CDRISC_Score', color='Keputusan',
-                hover_data=['nama'], title='Peta Ketangguhan Santri (Semangat vs Resiliensi)'
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-
-        st.subheader("Ranking Peserta (Confidence Score)")
-        top_df = df.sort_values(by='Confidence', ascending=False)
-        st.dataframe(
-            top_df[['nama', 'Confidence', 'Keputusan', 'DASS_Kategori_Depresi', 'Grit_Kategori', 'CDRISC_Kategori']],
-            use_container_width=True
-        )
+        if not santri_aktif.empty:
+            st.markdown("#### Perkembangan Santri Aktif")
+            columns = [
+                column for column in [
+                    "nama", "kelas_saat_ini", "lama_mondok_bulan", "juz_dikuasai",
+                    "juz_terjaga", "juz_baru_3_bulan", "murajaah_menit_per_hari"
+                ] if column in santri_aktif.columns
+            ]
+            st.dataframe(santri_aktif[columns], use_container_width=True)
 
     elif menu == "📋 Laporan Individual":
         show_individual_report(df)
@@ -554,7 +636,12 @@ def show_dashboard():
 
         with colB:
             st.subheader("2. Upload Data CSV Manual")
-            template_cols = ['nama', 'jenis_kelamin', 'usia', 'asal_sekolah']
+            template_cols = [
+                'nama', 'jenis_kelamin', 'usia', 'asal_sekolah', 'jenis_santri',
+                'kelas_saat_ini', 'lama_mondok_bulan', 'juz_dikuasai', 'juz_terjaga',
+                'juz_baru_3_bulan', 'murajaah_menit_per_hari', 'perasaan_belajar',
+                'kendala_belajar', 'motivasi', 'harapan_belajar'
+            ]
             for i in range(1, 8):
                 template_cols.extend([f'dass_d{i}', f'dass_a{i}', f'dass_s{i}'])
             for i in range(1, 9):
