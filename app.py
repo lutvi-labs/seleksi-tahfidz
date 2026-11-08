@@ -58,6 +58,26 @@ def sanitize_user(user):
     if isinstance(user, list) and len(user) > 0: user = user[0]
     return user if isinstance(user, dict) else None
 
+def advance_survey(step):
+    st.session_state.survey_step = step
+    st.session_state.survey_scroll_to_top = True
+    st.rerun()
+
+def scroll_survey_to_top():
+    st.html(
+        """
+        <script>
+        setTimeout(() => {
+            window.scrollTo({top: 0, behavior: "smooth"});
+            document.querySelectorAll(
+                '[data-testid="stAppViewContainer"], [data-testid="stMain"], section.main'
+            ).forEach(element => element.scrollTo({top: 0, behavior: "smooth"}));
+        }, 80);
+        </script>
+        """,
+        unsafe_allow_javascript=True
+    )
+
 # --- FUNGSI HALAMAN PESERTA (LOGIN/REGISTER) ---
 def show_login_peserta():
     st.markdown("<div style='text-align: center; margin-bottom: 30px;'>", unsafe_allow_html=True)
@@ -132,11 +152,15 @@ def show_survey():
             st.session_state.survey_data = {}
             st.session_state.pop("memori_started", None)
             st.session_state.pop("memori_finished", None)
+            st.session_state.survey_scroll_to_top = True
             st.rerun()
         if st.button("Logout / Keluar"):
             st.session_state.clear()
             st.rerun()
         return
+
+    if st.session_state.pop("survey_scroll_to_top", False):
+        scroll_survey_to_top()
 
     col1, col2 = st.columns([4, 1])
     with col1:
@@ -198,8 +222,7 @@ def show_survey():
                     "kelas_saat_ini": kelas,
                     "lama_mondok_bulan": lama_mondok_bulan
                 })
-                st.session_state.survey_step = 2
-                st.rerun()
+                advance_survey(2)
 
     # ------------------ STEP 2: DS-21 ------------------
     elif step == 2:
@@ -238,8 +261,7 @@ def show_survey():
                 st.markdown("---")
             if st.form_submit_button("Lanjut ke Bagian Berikutnya ➡️"):
                 for k, v in ans.items(): st.session_state.survey_data[k] = options_dass[v]
-                st.session_state.survey_step = 3
-                st.rerun()
+                advance_survey(3)
 
     # ------------------ STEP 3: GS-8 ------------------
     elif step == 3:
@@ -265,8 +287,7 @@ def show_survey():
                 st.markdown("---")
             if st.form_submit_button("Lanjut ke Bagian Berikutnya ➡️"):
                 for k, v in ans.items(): st.session_state.survey_data[k] = options_gs[v]
-                st.session_state.survey_step = 4
-                st.rerun()
+                advance_survey(4)
 
     # ------------------ STEP 4: CR-25 ------------------
     elif step == 4:
@@ -311,8 +332,7 @@ def show_survey():
                 st.markdown("---")
             if st.form_submit_button("Lanjut ke Bagian Berikutnya ➡️"):
                 for k, v in ans.items(): st.session_state.survey_data[k] = options_cr[v]
-                st.session_state.survey_step = 5
-                st.rerun()
+                advance_survey(5)
 
     # ------------------ STEP 5: TES MEMORI MV-10 (COUNTDOWN TIMER 15 DETIK) ------------------
     elif step == 5:
@@ -360,8 +380,7 @@ def show_survey():
                     # Reset state untuk penggunaan berikutnya
                     st.session_state.memori_started = False
                     st.session_state.memori_finished = False
-                    st.session_state.survey_step = 6
-                    st.rerun()
+                    advance_survey(6)
 
     # ------------------ STEP 6: RB-5 ------------------
     elif step == 6:
@@ -384,8 +403,8 @@ def show_survey():
                 st.markdown("---")
             if st.form_submit_button("Lanjut ke Bagian Terakhir ➡️"):
                 for k, v in ans.items(): st.session_state.survey_data[k] = options_rb[v]
-                st.session_state.survey_step = 7 if st.session_state.survey_data.get("jenis_santri") == "santri_aktif" else 8
-                st.rerun()
+                next_step = 7 if st.session_state.survey_data.get("jenis_santri") == "santri_aktif" else 8
+                advance_survey(next_step)
 
     # ------------------ STEP 7: PROGRES SANTRI AKTIF ------------------
     elif step == 7 and st.session_state.survey_data.get("jenis_santri") == "santri_aktif":
@@ -428,8 +447,7 @@ def show_survey():
                     "perasaan_belajar": perasaan,
                     "kendala_belajar": kendala
                 })
-                st.session_state.survey_step = 8
-                st.rerun()
+                advance_survey(8)
 
     # ------------------ STEP 8: MOTIVASI & SUBMIT ------------------
     elif step == 8:
@@ -453,8 +471,7 @@ def show_survey():
                 sukses = save_survey_response(user['id'], user['username'], st.session_state.survey_data)
                 
                 if sukses:
-                    st.session_state.survey_step = 9
-                    st.rerun()
+                    advance_survey(9)
                 else:
                     st.error("Waduh, koneksi terputus saat menyimpan data. Silakan klik tombol kirim sekali lagi.")
 

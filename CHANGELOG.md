@@ -14,6 +14,7 @@ Semua perubahan penting pada proyek ini akan didokumentasikan dalam file ini.
 - Pengujian otomatis untuk perhitungan skor dan pembuatan laporan DOCX kedua jenis santri.
 - Dokumentasi batasan indeks kesiapan dan usulan validasi menggunakan data capaian hafalan longitudinal.
 - Opsi memulai asesmen baru bagi akun yang sudah pernah mengirim jawaban, termasuk pilihan ulang jenis santri; asesmen sebelumnya tetap tersimpan.
+- Perpindahan tahap survei kini mengarahkan tampilan kembali ke bagian paling atas agar pertanyaan di awal tahap tidak terlewat.
 
 ## [1.0.0] - 2026-11-06 (Rilis Perdana)
 ### Ditambahkan
