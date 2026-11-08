@@ -65,10 +65,10 @@ def show_login_peserta():
     st.title("Ahlan wa Sahlan! 🕌")
     st.subheader("Portal Seleksi Calon Santri Tahfidz")
     st.write("**Assalamu'alaikum ananda yang shalih dan shalihah!** 👋")
-    st.write("Yuk, silakan **Login** atau **Buat Akun Baru** dulu ya sebelum mulai.")
+    st.write("Silakan login atau buat akun. Setelah masuk, kamu dapat memilih tes santri baru atau santri yang sudah belajar di pondok.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["🔑 Login (Sudah Punya Akun)", "📝 Buat Akun Baru (Peserta Baru)"])
+    tab1, tab2 = st.tabs(["🔑 Login (Sudah Punya Akun)", "📝 Buat Akun Peserta"])
 
     with tab1:
         with st.form("form_login_peserta"):
@@ -105,7 +105,7 @@ def show_login_peserta():
                 else:
                     reg_result = register_user(new_username, new_password, new_nama, new_email)
                     if reg_result:
-                        st.success("Alhamdulillah! Akun berhasil dibuat. Silakan klik Tab 'Login' di sebelah kiri atas untuk masuk.")
+                        st.success("Alhamdulillah! Akun berhasil dibuat. Silakan login. Setelah masuk, pilih jenis tes: santri baru atau santri yang sudah belajar di pondok.")
                     else:
                         st.error("Afwan, username ini sudah dipakai teman yang lain. Coba ganti yang lain ya.")
 
@@ -122,9 +122,17 @@ def show_survey():
         st.rerun()
         return
 
-    if check_user_already_submitted(user['id']):
+    has_previous_assessment = check_user_already_submitted(user['id'])
+    if has_previous_assessment and not st.session_state.get("start_new_assessment", False):
         st.success(f"Alhamdulillah, {user.get('nama_lengkap', '')}! Kamu sudah selesai mengerjakan semua tugas.")
-        st.info("Jawabanmu sudah tersimpan dengan aman. Semoga hasilnya yang terbaik. Baarakallahu fiik!")
+        st.info("Jawaban sebelumnya tersimpan dengan aman. Jika kamu santri aktif atau perlu mengisi asesmen terbaru, mulai asesmen baru di bawah ini. Setiap kiriman akan tersimpan sebagai data terpisah.")
+        if st.button("📝 Mulai Asesmen Baru", type="primary", key="btn_new_assessment"):
+            st.session_state.start_new_assessment = True
+            st.session_state.survey_step = 1
+            st.session_state.survey_data = {}
+            st.session_state.pop("memori_started", None)
+            st.session_state.pop("memori_finished", None)
+            st.rerun()
         if st.button("Logout / Keluar"):
             st.session_state.clear()
             st.rerun()
