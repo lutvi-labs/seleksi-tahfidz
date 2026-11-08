@@ -91,6 +91,10 @@ def analyze_individual(row):
     grit = float(_get_val('Grit_Score', 0))
     cdrisc = float(_get_val('CDRISC_Score', 0))
     mem = float(_get_val('Memori_Score', 0))
+    mem_arab = int(_get_val('Memori_Arab_Score', 0))
+    mem_ayah = int(_get_val('Memori_Ayat_Score', 0))
+    mem_color = int(_get_val('Memori_Warna_Score', 0))
+    mem_sound = int(_get_val('Memori_Suara_Score', 0))
     rb = float(_get_val('RB_Score', 0))
     motivasi = str(_get_val('motivasi', '-'))
     kelas = str(_get_val('kelas_saat_ini', '-'))
@@ -124,7 +128,10 @@ def analyze_individual(row):
     2. Ketekunan & Semangat Belajar (Grit-8): {grit:.2f} / 5.0
     3. Resiliensi / Ketahanan Mental (CD-RISC-25): {cdrisc:.0f} / 100
     4. Daya Ingat Memori Kata (MV-10): {mem:.0f} / 10 Kata
-    5. Indikator Risiko Perilaku (RB-5): {rb:.0f}
+    5. Variasi memori eksploratif — kosakata Arab {mem_arab}/8, urutan potongan ayat {mem_ayah}/1,
+       urutan warna {mem_color}/5, dan urutan bunyi {mem_sound}/4. Variasi ini belum tervalidasi
+       dan tidak termasuk skor kesiapan.
+    6. Indikator Risiko Perilaku (RB-5): {rb:.0f}
 
     Formatlah balasan Anda menggunakan Markdown yang indah dengan struktur berikut:
     ### Ringkasan asesmen {nama}

@@ -237,6 +237,10 @@ def build_individual_docx(row, ai_text=""):
         ("Grit-8", get_col(row, ["Grit_Score"], 0.0), "1-5"),
         ("Resiliensi (CR-25)", get_col(row, ["CDRISC_Score"], 0.0), "0-100"),
         ("Tes memori kata", get_col(row, ["Memori_Score"], 0.0), "0-10 kata"),
+        ("Kosakata Arab (eksploratif)", get_col(row, ["Memori_Arab_Score"], 0), "0-8 kata"),
+        ("Urutan potongan ayat (eksploratif)", get_col(row, ["Memori_Ayat_Score"], 0), "0-1 benar"),
+        ("Urutan warna (eksploratif)", get_col(row, ["Memori_Warna_Score"], 0), "0-5 posisi"),
+        ("Urutan bunyi (eksploratif)", get_col(row, ["Memori_Suara_Score"], 0), "0-4 posisi"),
         ("Indikator respons perilaku (RB-5)", get_col(row, ["RB_Score"], 0.0), "0-5 respons")
     ]
     scores = document.add_table(rows=1, cols=3)
@@ -250,7 +254,10 @@ def build_individual_docx(row, ai_text=""):
         cells[2].text = scale
 
     document.add_heading("Visualisasi Hasil Asesmen", level=1)
-    document.add_paragraph("Grafik menggambarkan skor asesmen dan bukan ambang kelulusan.")
+    document.add_paragraph(
+        "Grafik menggambarkan skor asesmen dan bukan ambang kelulusan. Variasi tes memori "
+        "bersifat eksploratif dan belum menjadi bagian dari skor kesiapan."
+    )
     document.add_picture(_chart_image(row, "radar"), width=Inches(6.1))
     document.add_picture(_chart_image(row, "scores"), width=Inches(6.1))
     document.add_picture(_chart_image(row, "dass"), width=Inches(6.1))
@@ -364,6 +371,10 @@ def show_individual_report(df_responses):
             ("Grit-8", get_col(row_data, ["Grit_Score"], 0.0), "1-5"),
             ("Resiliensi (CR-25)", get_col(row_data, ["CDRISC_Score"], 0.0), "0-100"),
             ("Tes memori kata", get_col(row_data, ["Memori_Score"], 0.0), "0-10 kata"),
+            ("Kosakata Arab (eksploratif)", get_col(row_data, ["Memori_Arab_Score"], 0), "0-8 kata"),
+            ("Urutan potongan ayat (eksploratif)", get_col(row_data, ["Memori_Ayat_Score"], 0), "0-1 benar"),
+            ("Urutan warna (eksploratif)", get_col(row_data, ["Memori_Warna_Score"], 0), "0-5 posisi"),
+            ("Urutan bunyi (eksploratif)", get_col(row_data, ["Memori_Suara_Score"], 0), "0-4 posisi"),
             ("RB-5", get_col(row_data, ["RB_Score"], 0.0), "0-5 respons")
         ]
     ]), hide_index=True, use_container_width=True)

@@ -15,6 +15,7 @@ Semua perubahan penting pada proyek ini akan didokumentasikan dalam file ini.
 - Dokumentasi batasan indeks kesiapan dan usulan validasi menggunakan data capaian hafalan longitudinal.
 - Opsi memulai asesmen baru bagi akun yang sudah pernah mengirim jawaban, termasuk pilihan ulang jenis santri; asesmen sebelumnya tetap tersimpan.
 - Perpindahan tahap survei kini mengarahkan tampilan kembali ke bagian paling atas agar pertanyaan di awal tahap tidak terlewat.
+- Menambahkan empat variasi tes memori: kosakata Arab, urutan kata potongan Surah Al-Ikhlas, urutan warna, dan urutan bunyi; skor ditampilkan terpisah dan tidak memengaruhi indeks kesiapan sebelum divalidasi.
 
 ## [1.0.0] - 2026-11-06 (Rilis Perdana)
 ### Ditambahkan

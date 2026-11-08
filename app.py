@@ -14,6 +14,14 @@ from modules.scoring import score_all
 from modules.jasp_engine import get_descriptives, get_correlations
 from modules.ai_engine import analyze_cohort
 from modules.report_individual import show_individual_report
+from modules.memory_tests import (
+    ARABIC_MEMORY_WORDS,
+    AYAH_ORDER_CHOICES,
+    COLOR_OPTIONS,
+    SOUND_OPTIONS,
+    SURAH_AL_IKHLAS,
+    create_sound_sequence_audio,
+)
 from modules.db_supabase import (
     login_user, 
     register_user, 
@@ -77,6 +85,46 @@ def scroll_survey_to_top():
         """,
         unsafe_allow_javascript=True
     )
+
+def show_timed_memory_stimulus(key, content, duration_seconds, start_label):
+    started_key = f"{key}_started"
+    finished_key = f"{key}_finished"
+    if st.session_state.get(finished_key, False):
+        return True
+
+    if not st.session_state.get(started_key, False):
+        if st.button(start_label, type="primary", key=f"{key}_start_button"):
+            st.session_state[started_key] = True
+            st.rerun()
+        return False
+
+    placeholder = st.empty()
+    progress_bar = st.progress(1.0)
+    for remaining in range(duration_seconds, -1, -1):
+        placeholder.markdown(
+            f"""
+            <div style="text-align:center;background:#e9ecef;padding:24px;
+                        border-radius:12px;color:#0f5132;">
+                <div style="font-size:28px;direction:rtl;line-height:2">{content}</div>
+                <div style="color:#dc3545;font-size:18px">
+                    ⏱️ Sisa waktu: {remaining} detik
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        progress_bar.progress(remaining / duration_seconds)
+        time.sleep(1)
+
+    placeholder.empty()
+    progress_bar.empty()
+    st.session_state[finished_key] = True
+    st.rerun()
+    return False
+
+def clear_memory_stimulus_state(key):
+    st.session_state.pop(f"{key}_started", None)
+    st.session_state.pop(f"{key}_finished", None)
 
 # --- FUNGSI HALAMAN PESERTA (LOGIN/REGISTER) ---
 def show_login_peserta():
@@ -152,6 +200,11 @@ def show_survey():
             st.session_state.survey_data = {}
             st.session_state.pop("memori_started", None)
             st.session_state.pop("memori_finished", None)
+            st.session_state.memory_variant_step = 0
+            for memory_key in ["memory_arabic", "memory_ayah", "memory_color", "memory_sound"]:
+                clear_memory_stimulus_state(memory_key)
+            st.session_state.pop("memory_color_target", None)
+            st.session_state.pop("memory_sound_target", None)
             st.session_state.survey_scroll_to_top = True
             st.rerun()
         if st.button("Logout / Keluar"):
@@ -336,51 +389,161 @@ def show_survey():
 
     # ------------------ STEP 5: TES MEMORI MV-10 (COUNTDOWN TIMER 15 DETIK) ------------------
     elif step == 5:
-        st.subheader(f"Langkah 5 dari {total_steps}: Saatnya Bermain (MV-10)")
+        if "memory_variant_step" not in st.session_state:
+            st.session_state.memory_variant_step = 0
+        variant_step = st.session_state.memory_variant_step
 
-        if 'memori_started' not in st.session_state:
-            st.session_state.memori_started = False
-        if 'memori_finished' not in st.session_state:
-            st.session_state.memori_finished = False
-
-        if not st.session_state.memori_finished:
-            st.warning("⚠️ **Petunjuk:** Klik tombol di bawah untuk melihat 10 kata. Kamu hanya punya waktu **15 detik** untuk menghafalnya sebelum kata-katanya hilang!")
-            
-            if not st.session_state.memori_started:
-                if st.button("⏱️ Mulai Hafalkan 10 Kata (15 Detik)", type="primary"):
-                    st.session_state.memori_started = True
+        if variant_step == 0:
+            st.subheader(f"Langkah 5 dari {total_steps}: Tes Memori Kata (MV-10)")
+            if not st.session_state.get("memori_finished", False):
+                st.warning("Hafalkan 10 kata selama 15 detik. Setelah waktu habis, tuliskan kata yang masih kamu ingat.")
+                if not st.session_state.get("memori_started", False):
+                    if st.button("⏱️ Mulai Hafalkan 10 Kata", type="primary"):
+                        st.session_state.memori_started = True
+                        st.rerun()
+                else:
+                    placeholder = st.empty()
+                    progress_bar = st.progress(1.0)
+                    words_text = "Alquran — Masjid — Hafalan — Pahala — Surga — Doa — Ustadz — Sabar — Ikhlas — Amal"
+                    for remaining in range(15, -1, -1):
+                        placeholder.markdown(
+                            f"""
+                            <div style="text-align:center;background:#e9ecef;padding:24px;
+                                        border-radius:12px;font-size:24px;color:#0f5132">
+                                {words_text}<br><br>
+                                <span style="color:#dc3545">⏱️ Sisa waktu: {remaining} detik</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        progress_bar.progress(remaining / 15.0)
+                        time.sleep(1)
+                    placeholder.empty()
+                    progress_bar.empty()
+                    st.session_state.memori_finished = True
                     st.rerun()
             else:
-                placeholder = st.empty()
-                progress_bar = st.progress(1.0)
-                words_text = "Alquran — Masjid — Hafalan — Pahala — Surga — Doa — Ustadz — Sabar — Ikhlas — Amal"
-                
-                # Loop Countdown 15 detik
-                for i in range(15, -1, -1):
-                    placeholder.markdown(f"""
-                    <div style='text-align: center; background-color: #e9ecef; padding: 25px; border-radius: 12px; font-size: 24px; font-weight: bold; letter-spacing: 1px; color: #0f5132;'>
-                    {words_text}
-                    <br><br>
-                    <span style='color: #dc3545; font-size: 18px;'>⏱️ Sisa waktu menghafal: {i} detik!</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    progress_bar.progress(i / 15.0)
-                    time.sleep(1)
-                
-                placeholder.empty()
-                progress_bar.empty()
-                st.session_state.memori_finished = True
-                st.rerun()
+                st.success("Waktu menghafal selesai. Tuliskan kata-kata yang masih kamu ingat.")
+                with st.form("step5_mv10"):
+                    jawaban = st.text_area(
+                        "Kata yang kamu ingat (pisahkan dengan spasi atau koma):",
+                        height=100,
+                        key="mv10_answer"
+                    )
+                    if st.form_submit_button("Lanjut ke Variasi Tes Memori ➡️"):
+                        st.session_state.survey_data["memori_jawaban"] = jawaban
+                        st.session_state.memory_variant_step = 1
+                        clear_memory_stimulus_state("memori")
+                        advance_survey(5)
+
+        elif variant_step == 1:
+            st.subheader("Variasi 1 dari 4: Ingatan Kosakata Arab")
+            st.info("Perhatikan delapan kosakata Arab selama 12 detik. Tidak perlu mengetahui artinya; cukup ingat bentuk katanya.")
+            arabic_words = "　".join(ARABIC_MEMORY_WORDS)
+            if not show_timed_memory_stimulus(
+                "memory_arabic",
+                arabic_words,
+                12,
+                "⏱️ Mulai melihat kosakata Arab"
+            ):
+                return
+            st.success("Kata-kata sudah disembunyikan. Tuliskan kosakata yang masih kamu ingat.")
+            with st.form("memory_arabic_form"):
+                answer = st.text_area(
+                    "Tuliskan dalam huruf Arab jika bisa. Jika tidak, tuliskan bunyi katanya dengan huruf Latin.",
+                    height=100,
+                    key="memory_arabic_answer"
+                )
+                if st.form_submit_button("Lanjut ke Variasi Berikutnya ➡️"):
+                    st.session_state.survey_data["memory_arabic_answer"] = answer
+                    clear_memory_stimulus_state("memory_arabic")
+                    st.session_state.memory_variant_step = 2
+                    advance_survey(5)
+
+        elif variant_step == 2:
+            st.subheader("Variasi 2 dari 4: Ingatan Potongan Ayat")
+            st.info("Perhatikan Surah Al-Ikhlas ayat 1–4 selama 15 detik. Setelah disembunyikan, pilih urutan kata pada ayat pertama.")
+            if not show_timed_memory_stimulus(
+                "memory_ayah",
+                SURAH_AL_IKHLAS.replace("\n", "<br>"),
+                15,
+                "📖 Mulai melihat potongan ayat"
+            ):
+                return
+            st.success("Ayat sudah disembunyikan. Pilih urutan kata ayat pertama yang kamu ingat.")
+            with st.form("memory_ayah_form"):
+                answer = st.radio(
+                    "Urutan yang benar:",
+                    AYAH_ORDER_CHOICES,
+                    key="memory_ayah_answer"
+                )
+                if st.form_submit_button("Lanjut ke Variasi Berikutnya ➡️"):
+                    st.session_state.survey_data["memory_ayah_answer"] = answer
+                    clear_memory_stimulus_state("memory_ayah")
+                    st.session_state.memory_variant_step = 3
+                    advance_survey(5)
+
+        elif variant_step == 3:
+            st.subheader("Variasi 3 dari 4: Ingatan Urutan Warna")
+            st.info("Ingat urutan lima warna yang muncul selama 10 detik. Setelah itu, susun kembali urutannya.")
+            if "memory_color_target" not in st.session_state:
+                st.session_state.memory_color_target = random.sample(COLOR_OPTIONS, 5)
+            color_stimulus = "　".join(st.session_state.memory_color_target)
+            if not show_timed_memory_stimulus(
+                "memory_color",
+                color_stimulus,
+                10,
+                "🎨 Mulai melihat urutan warna"
+            ):
+                return
+            st.success("Urutan warna sudah disembunyikan. Pilih warna sesuai urutannya.")
+            with st.form("memory_color_form"):
+                answers = [
+                    st.selectbox(
+                        f"Warna ke-{index}",
+                        COLOR_OPTIONS,
+                        key=f"memory_color_answer_{index}"
+                    )
+                    for index in range(1, 6)
+                ]
+                if st.form_submit_button("Lanjut ke Variasi Berikutnya ➡️"):
+                    st.session_state.survey_data["memory_color_target"] = st.session_state.memory_color_target
+                    st.session_state.survey_data["memory_color_answer"] = answers
+                    clear_memory_stimulus_state("memory_color")
+                    st.session_state.memory_variant_step = 4
+                    advance_survey(5)
+
         else:
-            st.success("🔒 Waktu 15 detik telah habis! 10 Kata telah disembunyikan. Tuliskan kata yang kamu ingat di bawah ini:")
-            with st.form("step5"):
-                jawaban = st.text_area("Tuliskan kata-kata yang berhasil kamu ingat (pisahkan dengan spasi atau koma):", height=120)
-                if st.form_submit_button("Lanjut ke Bagian Berikutnya ➡️"):
-                    st.session_state.survey_data['memori_jawaban'] = jawaban
-                    # Reset state untuk penggunaan berikutnya
-                    st.session_state.memori_started = False
-                    st.session_state.memori_finished = False
-                    advance_survey(6)
+            st.subheader("Variasi 4 dari 4: Ingatan Urutan Bunyi")
+            st.info("Dengarkan empat bunyi dengan durasi berbeda. Ingat urutannya, lalu pilih apakah tiap bunyi pendek, sedang, atau panjang.")
+            if "memory_sound_target" not in st.session_state:
+                st.session_state.memory_sound_target = random.choices(SOUND_OPTIONS, k=4)
+            sound_audio = create_sound_sequence_audio(st.session_state.memory_sound_target)
+            if not st.session_state.get("memory_sound_finished", False):
+                st.caption("Putar urutan bunyi satu kali, lalu tekan tombol selesai mendengarkan untuk menjawab.")
+                st.audio(sound_audio, format="audio/wav")
+                if st.button("Selesai mendengarkan 🔒", key="memory_sound_finish_listening"):
+                    st.session_state.memory_sound_finished = True
+                    st.rerun()
+            else:
+                st.success("Urutan bunyi disembunyikan. Pilih durasi bunyi sesuai urutannya.")
+                with st.form("memory_sound_form"):
+                    answers = [
+                        st.selectbox(
+                            f"Bunyi ke-{index}",
+                            SOUND_OPTIONS,
+                            key=f"memory_sound_answer_{index}"
+                        )
+                        for index in range(1, 5)
+                    ]
+                    if st.form_submit_button("Lanjut ke Bagian Berikutnya ➡️"):
+                        st.session_state.survey_data["memory_sound_target"] = st.session_state.memory_sound_target
+                        st.session_state.survey_data["memory_sound_answer"] = answers
+                        clear_memory_stimulus_state("memory_sound")
+                        st.session_state.pop("memory_color_target", None)
+                        st.session_state.pop("memory_sound_target", None)
+                        st.session_state.memory_variant_step = 0
+                        advance_survey(6)
 
     # ------------------ STEP 6: RB-5 ------------------
     elif step == 6:

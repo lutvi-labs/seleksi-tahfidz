@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from modules.memory_tests import count_arabic_words_recalled, score_ayah_order, score_sequence
 
 def score_dass21(df):
     d_items = [f'dass_d{i}' for i in range(1, 8)]
@@ -87,6 +88,20 @@ def score_tahap_lanjut(df):
 
     rb_cols = [f'rb{i}' for i in range(1, 6)]
     df['RB_Score'] = df[[c for c in rb_cols if c in df.columns]].sum(axis=1)
+    df['Memori_Arab_Score'] = df.get(
+        'memory_arabic_answer', pd.Series('', index=df.index)
+    ).apply(count_arabic_words_recalled)
+    df['Memori_Ayat_Score'] = df.get(
+        'memory_ayah_answer', pd.Series('', index=df.index)
+    ).apply(score_ayah_order)
+    df['Memori_Warna_Score'] = df.apply(
+        lambda row: score_sequence(row.get('memory_color_answer'), row.get('memory_color_target')),
+        axis=1
+    )
+    df['Memori_Suara_Score'] = df.apply(
+        lambda row: score_sequence(row.get('memory_sound_answer'), row.get('memory_sound_target')),
+        axis=1
+    )
     return df
 
 def calculate_readiness_score(row):

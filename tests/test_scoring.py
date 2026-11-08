@@ -45,6 +45,23 @@ class ScoringTests(unittest.TestCase):
 
         self.assertEqual(score_all(answers)["Memori_Score"], 1)
 
+    def test_additional_memory_tests_are_scored_separately(self):
+        answers = self.base_answers()
+        answers.update({
+            "memory_arabic_answer": "كتاب نور masjid quran",
+            "memory_ayah_answer": "قُلْ هُوَ اللَّهُ أَحَدٌ",
+            "memory_color_target": ["Merah", "Biru", "Hijau"],
+            "memory_color_answer": ["Merah", "Hijau", "Hijau"],
+            "memory_sound_target": ["Pendek", "Sedang", "Panjang"],
+            "memory_sound_answer": ["Pendek", "Panjang", "Panjang"]
+        })
+
+        result = score_all(answers)
+        self.assertEqual(result["Memori_Arab_Score"], 4)
+        self.assertEqual(result["Memori_Ayat_Score"], 1)
+        self.assertEqual(result["Memori_Warna_Score"], 2)
+        self.assertEqual(result["Memori_Suara_Score"], 2)
+
     def test_survey_type_is_preserved(self):
         answers = self.base_answers()
         answers["jenis_santri"] = "santri_aktif"
