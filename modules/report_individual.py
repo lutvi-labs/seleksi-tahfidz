@@ -9,6 +9,8 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
+RADAR_MINIMUM_THRESHOLD = 70
+
 
 def get_col(row, keys, default=0.0):
     if isinstance(row, pd.Series):
@@ -65,10 +67,18 @@ def plot_radar_profile(row):
         line=dict(color="#1b5e20", width=3),
         fillcolor="rgba(27, 94, 32, 0.25)"
     ))
+    fig.add_trace(go.Scatterpolar(
+        r=[RADAR_MINIMUM_THRESHOLD] * (len(categories) + 1),
+        theta=categories + [categories[0]],
+        name=f"Batas minimal referensi ({RADAR_MINIMUM_THRESHOLD})",
+        mode="lines",
+        line=dict(color="#c62828", width=2, dash="dash")
+    ))
     fig.update_layout(
         title="Profil Dimensi Asesmen (Skala 0-100)",
         polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-        showlegend=False,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
         margin=dict(l=40, r=40, t=55, b=35),
         height=380
     )
@@ -116,6 +126,15 @@ def _chart_image(row, chart_type):
         axis.set_xticks(angles[:-1])
         axis.set_xticklabels(labels, fontsize=8)
         axis.set_ylim(0, 100)
+        axis.plot(
+            angles,
+            [RADAR_MINIMUM_THRESHOLD] * len(angles),
+            color="#c62828",
+            linewidth=1.5,
+            linestyle="--",
+            label=f"Batas minimal referensi ({RADAR_MINIMUM_THRESHOLD})"
+        )
+        axis.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), fontsize=8)
         axis.set_title("Profil Dimensi Asesmen (Skala 0-100)", pad=20)
     elif chart_type == "progress":
         labels = ["Hafalan\ndikuasai", "Hafalan\nterjaga", "Hafalan baru\n(3 bulan)"]
@@ -237,7 +256,7 @@ def build_individual_docx(row, ai_text=""):
         ("Grit-8", get_col(row, ["Grit_Score"], 0.0), "1-5"),
         ("Resiliensi (CR-25)", get_col(row, ["CDRISC_Score"], 0.0), "0-100"),
         ("Tes memori kata", get_col(row, ["Memori_Score"], 0.0), "0-10 kata"),
-        ("Kosakata Arab dan arti (eksploratif)", get_col(row, ["Memori_Arab_Score"], 0), "0-8 pasangan"),
+        ("Arti kosakata Arab (eksploratif)", get_col(row, ["Memori_Arab_Score"], 0), "0-8 arti"),
         ("Urutan potongan Al-Baqarah (eksploratif)", get_col(row, ["Memori_Ayat_Score"], 0), "0-1 benar"),
         ("Urutan warna benda (eksploratif)", get_col(row, ["Memori_Warna_Score"], 0), "0-5 posisi"),
         ("Urutan bunyi (eksploratif)", get_col(row, ["Memori_Suara_Score"], 0), "0-4 posisi"),
@@ -256,7 +275,8 @@ def build_individual_docx(row, ai_text=""):
     document.add_heading("Visualisasi Hasil Asesmen", level=1)
     document.add_paragraph(
         "Grafik menggambarkan skor asesmen dan bukan ambang kelulusan. Variasi tes memori "
-        "bersifat eksploratif dan belum menjadi bagian dari skor kesiapan."
+        "bersifat eksploratif dan belum menjadi bagian dari skor kesiapan. Garis putus-putus "
+        f"pada radar adalah batas minimal referensi {RADAR_MINIMUM_THRESHOLD}/100, bukan ambang kelulusan."
     )
     document.add_picture(_chart_image(row, "radar"), width=Inches(6.1))
     document.add_picture(_chart_image(row, "scores"), width=Inches(6.1))
@@ -359,6 +379,10 @@ def show_individual_report(df_responses):
     chart1, chart2 = st.columns(2)
     with chart1:
         st.plotly_chart(plot_radar_profile(row_data), use_container_width=True)
+        st.caption(
+            f"Garis putus-putus menunjukkan batas minimal referensi {RADAR_MINIMUM_THRESHOLD}/100, "
+            "bukan ambang kelulusan."
+        )
     with chart2:
         st.plotly_chart(plot_dass_bar(row_data), use_container_width=True)
     st.markdown("#### Rincian Hasil Tes")
@@ -371,7 +395,7 @@ def show_individual_report(df_responses):
             ("Grit-8", get_col(row_data, ["Grit_Score"], 0.0), "1-5"),
             ("Resiliensi (CR-25)", get_col(row_data, ["CDRISC_Score"], 0.0), "0-100"),
             ("Tes memori kata", get_col(row_data, ["Memori_Score"], 0.0), "0-10 kata"),
-            ("Kosakata Arab dan arti (eksploratif)", get_col(row_data, ["Memori_Arab_Score"], 0), "0-8 pasangan"),
+            ("Arti kosakata Arab (eksploratif)", get_col(row_data, ["Memori_Arab_Score"], 0), "0-8 arti"),
             ("Urutan potongan Al-Baqarah (eksploratif)", get_col(row_data, ["Memori_Ayat_Score"], 0), "0-1 benar"),
             ("Urutan warna benda (eksploratif)", get_col(row_data, ["Memori_Warna_Score"], 0), "0-5 posisi"),
             ("Urutan bunyi (eksploratif)", get_col(row_data, ["Memori_Suara_Score"], 0), "0-4 posisi"),

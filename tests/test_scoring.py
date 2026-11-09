@@ -48,7 +48,7 @@ class ScoringTests(unittest.TestCase):
     def test_additional_memory_tests_are_scored_separately(self):
         answers = self.base_answers()
         answers.update({
-            "memory_arabic_answer": "كتاب = buku\nنور = cahaya\nmasjid = masjid\nquran = alquran",
+            "memory_arabic_answer": "buku\npena\ncahaya\npintu\nair\nrumah\nmasjid\nalquran",
             "memory_ayah_answer": "إِنَّ اللَّهَ مَعَ الصَّابِرِينَ",
             "memory_color_target": ["Merah", "Biru", "Hijau", "Kuning", "Ungu"],
             "memory_color_answer": "Merah, Hijau, Hijau, Kuning, Ungu",
@@ -57,7 +57,7 @@ class ScoringTests(unittest.TestCase):
         })
 
         result = score_all(answers)
-        self.assertEqual(result["Memori_Arab_Score"], 4)
+        self.assertEqual(result["Memori_Arab_Score"], 8)
         self.assertEqual(result["Memori_Ayat_Score"], 1)
         self.assertEqual(result["Memori_Warna_Score"], 4)
         self.assertEqual(result["Memori_Suara_Score"], 3)

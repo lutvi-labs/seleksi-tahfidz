@@ -13,9 +13,9 @@ Sistem informasi berbasis web untuk asesmen calon dan santri aktif tahfidz Al-Qu
   * **CR-25 (CD-RISC):** Mengukur resiliensi dan ketahanan mental.
   * **RB-5 (Risk Behavior):** Skrining jujur pelanggaran dan risiko perilaku.
 * **Tes Memori MV-10:** Tes daya ingat visual jangka pendek (10 kata) dengan *countdown timer* 15 detik.
-* **Variasi Tes Memori:** Mengingat kosakata Arab beserta artinya, urutan kata dari nukilan Surah Al-Baqarah ayat 153, urutan warna pada lima benda dengan bentuk berbeda, serta pola bunyi pendek/sedang/panjang. Jawaban warna ditulis sebagai urutan dari kiri ke kanan. Hasil variasi ditampilkan terpisah sebagai data eksploratif dan belum memengaruhi skor kesiapan.
+* **Variasi Tes Memori:** Mengingat kosakata Arab dengan menuliskan artinya saja sesuai urutan soal, urutan kata dari nukilan Surah Al-Baqarah ayat 153 (pilihan jawaban diperbesar), urutan warna pada lima benda dengan bentuk berbeda, serta pola bunyi pendek/sedang/panjang. Jawaban warna ditulis sebagai urutan dari kiri ke kanan. Hasil variasi ditampilkan terpisah sebagai data eksploratif dan belum memengaruhi skor kesiapan.
 * **Asesmen Santri Aktif:** Mencatat kelas, lama mondok, progres hafalan dan murajaah, perasaan belajar, kendala, serta sumber motivasi.
-* **Skor Kesiapan:** Santri baru mendapatkan indeks kesiapan 30 juz dalam skala 0-100 tanpa keputusan lolos/tidak lolos. Indeks ini bukan probabilitas keberhasilan dan belum divalidasi terhadap hasil alumni.
+* **Skor Kesiapan:** Santri baru mendapatkan indeks kesiapan 30 juz dalam skala 0-100 tanpa keputusan lolos/tidak lolos. Radar menampilkan garis putus-putus referensi 70/100, bukan ambang kelulusan. Indeks ini bukan probabilitas keberhasilan dan belum divalidasi terhadap hasil alumni.
 
 ### 👨‍💻 Dashboard Admin
 * **Real-time Analytics:** Ringkasan peserta, skor kesiapan santri baru, dan progres santri aktif.

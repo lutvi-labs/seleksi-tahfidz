@@ -12,10 +12,11 @@ from modules.memory_tests import (
 
 
 class AdditionalMemoryTests(unittest.TestCase):
-    def test_arabic_vocabulary_requires_correct_meanings(self):
-        answer = "كِتَابٌ = buku\ncahaya = نُورٌ\nqalam = pena\nmasjid = buku"
-        self.assertEqual(score_arabic_word_meanings(answer), 3)
-        self.assertEqual(score_arabic_word_meanings("kitab = buku\nكتاب = buku"), 1)
+    def test_arabic_vocabulary_answers_meanings_in_question_order(self):
+        answer = "buku\npena\ncahaya\npintu\nair\nrumah\nmasjid\nalquran"
+        self.assertEqual(score_arabic_word_meanings(answer), 8)
+        self.assertEqual(score_arabic_word_meanings("buku\ncahaya\nmasjid"), 1)
+        self.assertEqual(score_arabic_word_meanings(""), 0)
 
     def test_ayah_order_accepts_only_correct_choice_at_the_end(self):
         self.assertEqual(score_ayah_order(AYAH_ORDER_CHOICES[-1]), 1)

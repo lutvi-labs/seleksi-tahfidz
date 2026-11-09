@@ -440,7 +440,7 @@ def show_survey():
 
         elif variant_step == 1:
             st.subheader("Variasi 1 dari 4: Ingatan Kosakata Arab")
-            st.info("Perhatikan delapan kosakata Arab selama 12 detik. Setelah disembunyikan, tuliskan kata yang kamu ingat beserta artinya, satu pasangan per baris.")
+            st.info("Perhatikan delapan kosakata Arab selama 12 detik. Setelah disembunyikan, tuliskan artinya saja sesuai urutan kata, satu arti per baris.")
             arabic_words = "　".join(ARABIC_MEMORY_WORDS)
             if not show_timed_memory_stimulus(
                 "memory_arabic",
@@ -449,10 +449,10 @@ def show_survey():
                 "⏱️ Mulai melihat kosakata Arab"
             ):
                 return
-            st.success("Kata-kata sudah disembunyikan. Tuliskan kata yang kamu ingat beserta artinya.")
+            st.success("Kata-kata sudah disembunyikan. Tuliskan artinya saja sesuai urutan.")
             with st.form("memory_arabic_form"):
                 answer = st.text_area(
-                    "Format: kata Arab/transliterasi = arti; tulis satu pasangan per baris.",
+                    "Tulis satu arti per baris, mengikuti urutan kata yang ditampilkan.",
                     height=100,
                     key="memory_arabic_answer"
                 )
@@ -474,6 +474,19 @@ def show_survey():
                 return
             st.success("Ayat sudah disembunyikan. Pilih susunan kata yang sesuai dengan nukilan ayat.")
             with st.form("memory_ayah_form"):
+                st.markdown(
+                    """
+                    <style>
+                    .st-key-memory_ayah_answer [data-testid="stMarkdownContainer"] p {
+                        font-size: 300% !important;
+                        line-height: 1.65 !important;
+                        direction: rtl;
+                        text-align: right;
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
                 answer = st.radio(
                     "Urutan yang benar:",
                     AYAH_ORDER_CHOICES,

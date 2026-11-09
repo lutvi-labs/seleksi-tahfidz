@@ -128,7 +128,7 @@ def analyze_individual(row):
     2. Ketekunan & Semangat Belajar (Grit-8): {grit:.2f} / 5.0
     3. Resiliensi / Ketahanan Mental (CD-RISC-25): {cdrisc:.0f} / 100
     4. Daya Ingat Memori Kata (MV-10): {mem:.0f} / 10 Kata
-    5. Variasi memori eksploratif — kosakata Arab beserta arti {mem_arab}/8 pasangan,
+    5. Variasi memori eksploratif — arti kosakata Arab {mem_arab}/8,
        urutan nukilan Al-Baqarah 2:153 {mem_ayah}/1, urutan warna lima benda berbeda bentuk
        {mem_color}/5, dan urutan bunyi {mem_sound}/4. Variasi ini belum tervalidasi dan
        tidak termasuk skor kesiapan.

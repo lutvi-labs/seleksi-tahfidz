@@ -20,17 +20,6 @@ ARABIC_WORD_MEANINGS = {
     "مسجد": {"masjid"},
     "قران": {"alquran", "quran", "al-quran"}
 }
-ARABIC_WORD_ALIASES = {
-    "كتاب": {"kitab", "kitabun"},
-    "قلم": {"qalam", "qalamun"},
-    "نور": {"nur", "noor"},
-    "باب": {"bab", "baab"},
-    "ماء": {"maa", "maaun"},
-    "بيت": {"bait", "bayt", "baitun"},
-    "مسجد": {"masjid"},
-    "قران": {"quran", "qur"}
-}
-
 AYAH_ORDER_CHOICES = [
     "مَعَ اللَّهِ إِنَّ الصَّابِرِينَ",
     "إِنَّ الصَّابِرِينَ مَعَ اللَّهِ",
@@ -52,47 +41,13 @@ SOUND_OPTIONS = ["Pendek", "Sedang", "Panjang"]
 SOUND_DURATIONS = {"Pendek": 0.16, "Sedang": 0.34, "Panjang": 0.56}
 
 
-def normalize_arabic_words(text):
-    text = str(text or "").translate(str.maketrans({
-        "أ": "ا",
-        "إ": "ا",
-        "آ": "ا",
-        "ٱ": "ا"
-    }))
-    text = re.sub(r"[\u064B-\u065F\u0670\u06D6-\u06ED]", "", text)
-    return set(re.findall(r"[\u0621-\u064A]+", text))
-
-
 def score_arabic_word_meanings(answer):
-    correct = 0
-    recalled_words = set()
-    for line in str(answer or "").splitlines():
-        parts = re.split(r"\s*(?:=|:|->|—|–)\s*", line, maxsplit=1)
-        if len(parts) != 2:
-            continue
-        left, right = parts
-        left_arabic = normalize_arabic_words(left)
-        right_arabic = normalize_arabic_words(right)
-        left_latin = set(re.findall(r"[a-z]+", left.casefold()))
-        right_latin = set(re.findall(r"[a-z]+", right.casefold()))
-
-        for arabic_word, meanings in ARABIC_WORD_MEANINGS.items():
-            if arabic_word in recalled_words:
-                continue
-            aliases = ARABIC_WORD_ALIASES[arabic_word]
-            left_is_word = arabic_word in left_arabic or bool(aliases.intersection(left_latin))
-            right_is_word = arabic_word in right_arabic or bool(aliases.intersection(right_latin))
-            if left_is_word:
-                meaning_arabic, meaning_latin = right_arabic, right_latin
-            elif right_is_word:
-                meaning_arabic, meaning_latin = left_arabic, left_latin
-            else:
-                continue
-            if meanings.intersection(meaning_arabic | meaning_latin):
-                correct += 1
-                recalled_words.add(arabic_word)
-                break
-    return correct
+    answers = [line.strip().casefold() for line in str(answer or "").splitlines() if line.strip()]
+    meanings_by_word = list(ARABIC_WORD_MEANINGS.values())
+    return sum(
+        bool(meanings.intersection(re.findall(r"[a-z]+", response)))
+        for response, meanings in zip(answers, meanings_by_word)
+    )
 
 
 def score_ayah_order(answer):

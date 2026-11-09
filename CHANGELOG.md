@@ -4,6 +4,8 @@ Semua perubahan penting pada proyek ini akan didokumentasikan dalam file ini.
 
 ## [Unreleased]
 ### Diubah
+- Menambahkan garis putus-putus batas minimal referensi 70/100 pada radar dashboard dan laporan; garis ini bukan ambang kelulusan.
+- Tes kosakata Arab kini meminta arti saja sesuai urutan soal; pilihan jawaban nukilan Al-Baqarah diperbesar untuk keterbacaan.
 - Menghapus keputusan otomatis lolos/tidak lolos; skor kesiapan santri baru kini berupa indeks berbobot 0-100 dan bukan probabilitas keberhasilan.
 - Respons RB-5 tidak mengurangi skor kesiapan dan tetap ditampilkan terpisah sebagai bahan pendampingan.
 - Mengganti ekspor laporan PDF dengan laporan DOCX editable yang memuat rincian hasil tes dan grafik radar/skor.
