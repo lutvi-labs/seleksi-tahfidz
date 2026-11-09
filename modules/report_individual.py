@@ -71,8 +71,10 @@ def plot_radar_profile(row):
         r=[RADAR_MINIMUM_THRESHOLD] * (len(categories) + 1),
         theta=categories + [categories[0]],
         name=f"Batas minimal referensi ({RADAR_MINIMUM_THRESHOLD})",
-        mode="lines",
-        line=dict(color="#c62828", width=2, dash="dash")
+        mode="lines+markers",
+        line=dict(color="#d00000", width=4, dash="dash"),
+        marker=dict(color="#d00000", size=8, symbol="diamond"),
+        hovertemplate="Batas minimal referensi: %{r:.0f}/100<extra></extra>"
     ))
     fig.update_layout(
         title="Profil Dimensi Asesmen (Skala 0-100)",

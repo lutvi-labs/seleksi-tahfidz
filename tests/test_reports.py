@@ -56,7 +56,10 @@ class IndividualReportTests(unittest.TestCase):
         self.assertEqual(len(document.inline_shapes), 3)
         self.assertTrue(any("bukan probabilitas" in paragraph for paragraph in paragraphs))
         self.assertEqual(len(radar.data), 2)
+        self.assertEqual(radar.data[1].mode, "lines+markers")
         self.assertEqual(radar.data[1].line.dash, "dash")
+        self.assertEqual(radar.data[1].line.width, 4)
+        self.assertEqual(radar.data[1].marker.size, 8)
         self.assertEqual(set(radar.data[1].r), {RADAR_MINIMUM_THRESHOLD})
         self.assertTrue(any("batas minimal referensi" in paragraph for paragraph in paragraphs))
 
